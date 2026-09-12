@@ -6,6 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "secom-process-control"
 version = "1.0.0"
 description = "Production test monitoring and process control analysis on the UCI SECOM fab dataset"
+readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "numpy>=2.0",
@@ -24,3 +25,4 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["src"]
