@@ -1,0 +1,7 @@
+table,rows,columns,bytes,file
+dim_date,91,12,6998,dim_date.csv
+dim_sensor,590,32,225155,dim_sensor.csv
+fact_run,1567,15,184723,fact_run.csv
+fact_measurement,54845,9,6593813,fact_measurement.csv
+fact_yield_week,14,18,2941,fact_yield_week.csv
+fact_gchart,103,9,5910,fact_gchart.csv

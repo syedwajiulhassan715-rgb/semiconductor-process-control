@@ -1,0 +1,353 @@
+// ===========================================================================
+// SECOM process-control model -- DAX measures
+//
+// Paste each measure into Power BI Desktop (Modeling > New measure). Put them
+// all in a dedicated "_Measures" table so they are not scattered across the
+// fact tables.
+//
+// DESIGN NOTES
+//
+// 1. Control limits are recomputed in DAX rather than read from the exported
+//    fact_yield_week table. That is deliberate: limits must respond to the
+//    slicers the user applies, otherwise a chart filtered to one shift shows
+//    limits computed from all shifts and every point looks in control.
+//    fact_yield_week stays in the model as the Python reference -- at the
+//    unfiltered weekly grain [p-chart UCL] must equal
+//    fact_yield_week[ucl_phase1] (verified to 1e-16 by scripts/run_analysis.py).
+//    Note the reference is the *_phase1 columns, not [ucl]: the plain [ucl]
+//    column is the retrospective stability chart, centred on all 14 weeks
+//    (p-bar = 0.0664), which answers "was this process ever in control?".
+//    The monitoring chart reproduced here centres on Phase I (p-bar = 0.0307)
+//    and answers "is this week consistent with the baseline?". Same data, two
+//    different questions, two different centre lines.
+//
+// 2. The *centre line* does the opposite. [Baseline Fail Rate] uses
+//    REMOVEFILTERS() so it is pinned to the Phase I window no matter what the
+//    user selects. A centre line that moves with the selection is not a
+//    baseline, and would let an excursion redefine "normal" as the user
+//    drills into it.
+//
+// 3. Every divide is DIVIDE(), never "/". The weekly grain contains genuinely
+//    empty subgroups (the line did not run every day), and "/" returns
+//    infinity there, which poisons the axis range of the whole visual.
+// ===========================================================================
+
+
+// --------------------------------------------------------------------------
+// 1. Base counts
+// --------------------------------------------------------------------------
+
+Runs = COUNTROWS ( fact_run )
+
+Fails = SUM ( fact_run[fail_count] )
+
+Passes = SUM ( fact_run[pass_count] )
+
+Fail Rate =
+DIVIDE ( [Fails], [Runs] )
+
+Yield =
+DIVIDE ( [Passes], [Runs] )
+
+// Additive, so it rolls up correctly across any hierarchy. Note this is NOT
+// the same as 1 - AVERAGE(weekly fail rate), which weights small weeks equally
+// with large ones.
+Yield % =
+FORMAT ( [Yield], "0.0%" )
+
+
+// --------------------------------------------------------------------------
+// 2. Phase I baseline constants
+// --------------------------------------------------------------------------
+
+// Pinned to the Phase I window regardless of user filters. See design note 2.
+Baseline Fail Rate =
+CALCULATE (
+    DIVIDE ( SUM ( fact_run[fail_count] ), COUNTROWS ( fact_run ) ),
+    REMOVEFILTERS (),
+    fact_run[phase] = "1 - Phase I baseline"
+)
+
+Baseline Runs =
+CALCULATE (
+    COUNTROWS ( fact_run ),
+    REMOVEFILTERS (),
+    fact_run[phase] = "1 - Phase I baseline"
+)
+
+
+// --------------------------------------------------------------------------
+// 3. Overdispersion (Laney) -- computed live over the visible subgroups
+// --------------------------------------------------------------------------
+
+// Laney's sigma_z: the standard deviation of the standardised subgroup
+// proportions, estimated from their average moving range over d2(2).
+//
+// Under pure binomial variation this is 1.0 and the correction is a no-op.
+// Above ~1.2 the between-subgroup variation exceeds what binomial sampling can
+// explain and an uncorrected p-chart will alarm on ordinary process noise.
+//
+// The moving range is taken in chronological order, which is why dim_date
+// carries year_week_sort -- ordering on the "2008-W09" text would place W09
+// after W10.
+Laney Sigma Z =
+VAR PBar = [Baseline Fail Rate]
+VAR Subgroups =
+    ADDCOLUMNS (
+        SUMMARIZE ( ALLSELECTED ( dim_date ), dim_date[year_week], dim_date[year_week_sort] ),
+        "@n", CALCULATE ( COUNTROWS ( fact_run ) ),
+        "@d", CALCULATE ( SUM ( fact_run[fail_count] ) )
+    )
+VAR Populated =
+    FILTER ( Subgroups, [@n] > 0 )
+VAR WithZ =
+    ADDCOLUMNS (
+        Populated,
+        "@z",
+            DIVIDE (
+                DIVIDE ( [@d], [@n] ) - PBar,
+                SQRT ( DIVIDE ( PBar * ( 1 - PBar ), [@n] ) )
+            )
+    )
+VAR MovingRanges =
+    ADDCOLUMNS (
+        WithZ,
+        "@mr",
+            VAR ThisSort = dim_date[year_week_sort]
+            VAR PrevSort =
+                MAXX ( FILTER ( WithZ, dim_date[year_week_sort] < ThisSort ), dim_date[year_week_sort] )
+            VAR PrevZ =
+                MAXX ( FILTER ( WithZ, dim_date[year_week_sort] = PrevSort ), [@z] )
+            RETURN
+                IF ( ISBLANK ( PrevSort ), BLANK (), ABS ( [@z] - PrevZ ) )
+    )
+VAR MRBar =
+    AVERAGEX ( FILTER ( MovingRanges, NOT ISBLANK ( [@mr] ) ), [@mr] )
+RETURN
+    DIVIDE ( MRBar, 1.128379167 )   // d2 for subgroup size 2
+
+Is Overdispersed =
+IF ( [Laney Sigma Z] > 1.2, "Yes - Laney p' limits in use", "No - binomial limits adequate" )
+
+
+// --------------------------------------------------------------------------
+// 4. p-chart limits (variable by subgroup size)
+// --------------------------------------------------------------------------
+
+// Limits widen for small subgroups and tighten for large ones. This is the
+// entire reason for charting a proportion rather than a raw count.
+p-chart UCL =
+VAR PBar  = [Baseline Fail Rate]
+VAR N     = [Runs]
+VAR Sigma = [Laney Sigma Z]
+RETURN
+    IF (
+        N > 0,
+        MIN ( 1, PBar + 3 * Sigma * SQRT ( DIVIDE ( PBar * ( 1 - PBar ), N ) ) )
+    )
+
+p-chart LCL =
+VAR PBar  = [Baseline Fail Rate]
+VAR N     = [Runs]
+VAR Sigma = [Laney Sigma Z]
+RETURN
+    IF (
+        N > 0,
+        MAX ( 0, PBar - 3 * Sigma * SQRT ( DIVIDE ( PBar * ( 1 - PBar ), N ) ) )
+    )
+
+// The uncorrected limit, kept as a visible contrast. Plotting both on one chart
+// shows precisely how much of the apparent signal is an artefact of assuming
+// binomial variation.
+p-chart UCL (uncorrected) =
+VAR PBar = [Baseline Fail Rate]
+VAR N    = [Runs]
+RETURN
+    IF ( N > 0, MIN ( 1, PBar + 3 * SQRT ( DIVIDE ( PBar * ( 1 - PBar ), N ) ) ) )
+
+Subgroup Out Of Control =
+IF (
+    NOT ISBLANK ( [Fail Rate] )
+        && ( [Fail Rate] > [p-chart UCL] || [Fail Rate] < [p-chart LCL] ),
+    1,
+    0
+)
+
+// --- Detectability guard --------------------------------------------------
+// At p-bar = 6.6% a subgroup needs n >= 9(1-p)/p = 127 runs before the lower
+// limit clears zero. Below that the chart is structurally incapable of
+// signalling an improvement, and a flat LCL at 0 should not be mistaken for
+// "nothing has got better". Surface this on the chart rather than hiding it.
+Min n for Non-Zero LCL =
+VAR PBar = [Baseline Fail Rate]
+RETURN
+    DIVIDE ( 9 * ( 1 - PBar ), PBar )
+
+Improvement Detectable =
+IF (
+    [Runs] >= [Min n for Non-Zero LCL],
+    "Yes",
+    "No - subgroup too small, LCL pinned at 0"
+)
+
+
+// --------------------------------------------------------------------------
+// 5. CUSUM -- the chart that actually detects sustained shifts
+// --------------------------------------------------------------------------
+
+CUSUM Alarm Runs =
+CALCULATE ( COUNTROWS ( fact_run ), fact_run[cusum_signal] = TRUE () )
+
+// One investigation per contiguous alarm block, not one per alarming run.
+// The episode boundary is precomputed in Python (see export.build_fact_run).
+CUSUM Alarm Episodes =
+CALCULATE ( COUNTROWS ( fact_run ), fact_run[cusum_episode_start] = TRUE () )
+
+Max CUSUM =
+MAX ( fact_run[cusum] )
+
+// Expected false-alarm count at the designed in-control ARL of ~500 runs.
+// Comparing this against [CUSUM Alarm Episodes] is how a user tells a real
+// excursion from the chart doing its normal job.
+Expected False Alarms =
+DIVIDE ( [Runs], 500 )
+
+Alarm Excess Over Expected =
+[CUSUM Alarm Episodes] - [Expected False Alarms]
+
+
+// --------------------------------------------------------------------------
+// 6. Low-rate chart (runs between failures)
+// --------------------------------------------------------------------------
+
+Mean Runs Between Failures =
+AVERAGE ( fact_gchart[runs_since_previous_fail] )
+
+g-chart Violations =
+CALCULATE ( COUNTROWS ( fact_gchart ), fact_gchart[violation] = TRUE () )
+
+
+// --------------------------------------------------------------------------
+// 7. Sensor control charts
+// --------------------------------------------------------------------------
+
+Watchlist Readings =
+COUNTROWS ( fact_measurement )
+
+Readings Beyond Limits =
+CALCULATE ( COUNTROWS ( fact_measurement ), fact_measurement[beyond_limits] = TRUE () )
+
+Pct Beyond Limits =
+DIVIDE ( [Readings Beyond Limits], [Watchlist Readings] )
+
+Sensors Beyond Limits =
+CALCULATE (
+    DISTINCTCOUNT ( fact_measurement[sensor_id] ),
+    fact_measurement[beyond_limits] = TRUE ()
+)
+
+Max Abs Robust Z =
+MAXX ( fact_measurement, ABS ( fact_measurement[robust_z] ) )
+
+// A 3-sigma individuals chart false-alarms at 0.27% per point by construction.
+// Against ~55k readings that is ~148 expected exceedances with a perfectly
+// stable process, so a raw count of violations means nothing without this.
+Expected Beyond Limits (chance) =
+[Watchlist Readings] * 0.0027
+
+Violation Ratio vs Chance =
+DIVIDE ( [Readings Beyond Limits], [Expected Beyond Limits (chance)] )
+
+
+// --------------------------------------------------------------------------
+// 8. Data quality (the audit, made visible in the report)
+// --------------------------------------------------------------------------
+
+Sensors Raw =
+COUNTROWS ( ALL ( dim_sensor ) )
+
+Sensors Retained =
+CALCULATE ( COUNTROWS ( dim_sensor ), dim_sensor[retained] = TRUE () )
+
+Sensors Dropped =
+[Sensors Raw] - [Sensors Retained]
+
+Retention Rate =
+DIVIDE ( [Sensors Retained], [Sensors Raw] )
+
+Sensors On Watchlist =
+CALCULATE ( COUNTROWS ( dim_sensor ), dim_sensor[is_watchlist] = TRUE () )
+
+
+// --------------------------------------------------------------------------
+// 9. Model triage -- make the operating-point trade-off interactive
+// --------------------------------------------------------------------------
+//
+// Requires a disconnected what-if table. Create it with:
+//   Modeling > New parameter > Numeric range
+//   Name: Review Budget   Min: 5   Max: 100   Increment: 5   Default: 20
+// That generates a table 'Review Budget' with column [Review Budget].
+//
+// Point of this measure: it lets a reviewer drag the budget slider and watch
+// the capture rate track the diagonal. The screening model is only worth
+// deploying if this curve bows meaningfully above y = x. On this data it does
+// not, and the slider makes that obvious without reading the report.
+
+Review Budget Pct =
+DIVIDE ( SELECTEDVALUE ( 'Review Budget'[Review Budget], 20 ), 100 )
+
+Capture Rate at Budget =
+VAR Budget = [Review Budget Pct]
+VAR Scored =
+    FILTER ( ALLSELECTED ( fact_run ), NOT ISBLANK ( fact_run[model_score] ) )
+VAR N = COUNTROWS ( Scored )
+VAR K = MAX ( 1, ROUND ( N * Budget, 0 ) )
+VAR Threshold =
+    MINX ( TOPN ( K, Scored, fact_run[model_score], DESC ), fact_run[model_score] )
+VAR Flagged =
+    FILTER ( Scored, fact_run[model_score] >= Threshold )
+VAR CapturedFails =
+    COUNTROWS ( FILTER ( Flagged, fact_run[is_fail] = TRUE () ) )
+VAR TotalFails =
+    COUNTROWS ( FILTER ( Scored, fact_run[is_fail] = TRUE () ) )
+RETURN
+    DIVIDE ( CapturedFails, TotalFails )
+
+// Lift of 1.0 means the model is doing exactly as well as reviewing runs at
+// random. Anything below ~2 is not worth the engineering time it costs.
+Triage Lift =
+DIVIDE ( [Capture Rate at Budget], [Review Budget Pct] )
+
+Triage Verdict =
+VAR L = [Triage Lift]
+RETURN
+    SWITCH (
+        TRUE (),
+        ISBLANK ( L ), "no scored runs in selection",
+        L >= 3, "useful",
+        L >= 2, "marginal",
+        "not worth deploying"
+    )
+
+
+// --------------------------------------------------------------------------
+// 10. Trend helpers
+// --------------------------------------------------------------------------
+// DATESINPERIOD needs dim_date marked as the date table (Table tools > Mark as
+// date table > date). Without that it silently returns wrong windows around
+// the days the line did not run.
+
+Fail Rate (7-day rolling) =
+CALCULATE (
+    [Fail Rate],
+    DATESINPERIOD ( dim_date[date], MAX ( dim_date[date] ), -7, DAY )
+)
+
+Fail Rate (previous week) =
+CALCULATE ( [Fail Rate], DATEADD ( dim_date[date], -7, DAY ) )
+
+Fail Rate WoW Delta =
+[Fail Rate] - [Fail Rate (previous week)]
+
+Days With Production =
+CALCULATE ( COUNTROWS ( dim_date ), dim_date[has_production] = TRUE () )

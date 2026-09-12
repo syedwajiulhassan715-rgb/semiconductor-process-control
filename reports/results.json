@@ -1,0 +1,397 @@
+{
+  "dataset": {
+    "n_runs": 1567,
+    "n_sensors_raw": 590,
+    "n_fail": 104,
+    "fail_rate": 0.06636885768985322,
+    "start": "2008-07-19 11:55:00",
+    "end": "2008-10-17 06:07:00",
+    "span_days": 89,
+    "cell_missing_rate": 0.04537548808583821
+  },
+  "audit": {
+    "disposition_counts": {
+      "retain": 412,
+      "drop_constant": 116,
+      "drop_sparse": 32,
+      "drop_near_duplicate": 30
+    },
+    "n_retained": 412,
+    "missingness_tests": 538,
+    "missingness_sig_q05": 0,
+    "missingness_raw_p05": 8,
+    "missingness_min_q": 0.10230412837697204,
+    "missingness_expected_by_chance": 26.9
+  },
+  "cleaning": {
+    "n_retained": 412,
+    "cells_imputed": 7891,
+    "cells_total": 645604,
+    "imputed_pct": 1.2222662808780616,
+    "lookahead_cells": 20,
+    "lookahead_pct": 0.003097874238697406
+  },
+  "yield": {
+    "weekly_subgroups": 14,
+    "p_bar": 0.06636885768985322,
+    "sigma_z": 1.4629703291084863,
+    "dispersion_chi2_p": 5.206079783174696e-08,
+    "chart_type": "laney_p_prime",
+    "naive_violations": 1,
+    "naive_violation_weeks": [
+      "2008-W31"
+    ],
+    "laney_violations": 0,
+    "n_needed_for_nonzero_lcl": 126.60576923076924,
+    "weeks_with_lcl_pinned_at_zero": 7,
+    "regime_pre_rate": 0.1291759465478842,
+    "regime_post_rate": 0.04114490161001789,
+    "regime_odds_ratio": 3.4569109307238963,
+    "regime_or_ci": [
+      2.2629701019582855,
+      5.296863857798193
+    ],
+    "regime_fisher_p": 2.0179672803558176e-09,
+    "sigma_z_phase1_centred": 2.2502126945466685,
+    "p_bar_phase1": 0.030683403068340307,
+    "phase1_centred_violations": 1,
+    "phase1_centred_violation_weeks": [
+      "2008-W31"
+    ],
+    "g_chart_center": 14.067307692307693,
+    "g_chart_violations": 1
+  },
+  "cusum": {
+    "p0": 0.030683403068340307,
+    "p1": 0.061366806136680614,
+    "h": 1.8221094012260466,
+    "arl0_runs": 509.35133333333334,
+    "baseline_weeks": [
+      35,
+      39
+    ],
+    "detection": {
+      "pre_baseline": {
+        "n_runs": 449,
+        "n_fail": 58,
+        "rate": 0.1291759465478842,
+        "runs_to_signal": 12,
+        "days_to_signal": 0.45625,
+        "signal_date": "2008-07-19",
+        "alarm_episodes": 15
+      },
+      "phase_ii": {
+        "n_runs": 401,
+        "n_fail": 24,
+        "rate": 0.059850374064837904,
+        "runs_to_signal": 73,
+        "days_to_signal": 3.2944444444444443,
+        "signal_date": "2008-10-02",
+        "alarm_episodes": 4
+      },
+      "baseline_self_check": {
+        "n_runs": 717,
+        "n_fail": 22,
+        "rate": 0.030683403068340307,
+        "runs_to_signal": 157,
+        "days_to_signal": 6.0625,
+        "signal_date": "2008-08-31",
+        "alarm_episodes": 2
+      }
+    }
+  },
+  "sensors": {
+    "n_tested": 412,
+    "drift_sig": 293,
+    "drift_pct": 71.11650485436894,
+    "regime_sig": 244,
+    "regime_sig_large_effect": 8,
+    "fail_all_sig": 17,
+    "fail_stable_sig": 1,
+    "fail_stable_raw_p05": 35,
+    "fail_stable_expected_by_chance": 20.6,
+    "fail_stable_survivors": [
+      "S060"
+    ],
+    "hits_surviving_confound_check": [
+      "S060"
+    ]
+  },
+  "model": {
+    "results": [
+      {
+        "model": "logistic_l2",
+        "protocol": "stratified_10fold_shuffled",
+        "n_train": 1567,
+        "n_test": 1567,
+        "n_test_fail": 104,
+        "BER": 0.37319588306430407,
+        "sensitivity": 0.4326923076923077,
+        "specificity": 0.820915926179084,
+        "ROC_AUC": 0.6980322309269678,
+        "PR_AUC": 0.1515116097519232,
+        "prevalence": 0.06636885768985322,
+        "lift_over_prevalence": 2.282872043089074
+      },
+      {
+        "model": "hist_gradient_boosting",
+        "protocol": "stratified_10fold_shuffled",
+        "n_train": 1567,
+        "n_test": 1567,
+        "n_test_fail": 104,
+        "BER": 0.47001353909248644,
+        "sensitivity": 0.10576923076923077,
+        "specificity": 0.9542036910457963,
+        "ROC_AUC": 0.7152387086597611,
+        "PR_AUC": 0.1477306340523896,
+        "prevalence": 0.06636885768985322,
+        "lift_over_prevalence": 2.2259029188470625
+      },
+      {
+        "model": "logistic_l2",
+        "protocol": "forward_chronological",
+        "n_train": 1096,
+        "n_test": 471,
+        "n_test_fail": 26,
+        "BER": 0.5043647363872084,
+        "sensitivity": 0.038461538461538464,
+        "specificity": 0.952808988764045,
+        "ROC_AUC": 0.6063094209161624,
+        "PR_AUC": 0.07330837998313852,
+        "prevalence": 0.055201698513800426,
+        "lift_over_prevalence": 1.328009498925317
+      },
+      {
+        "model": "hist_gradient_boosting",
+        "protocol": "forward_chronological",
+        "n_train": 1096,
+        "n_test": 471,
+        "n_test_fail": 26,
+        "BER": 0.5022471910112359,
+        "sensitivity": 0.0,
+        "specificity": 0.9955056179775281,
+        "ROC_AUC": 0.5646499567847882,
+        "PR_AUC": 0.07218339350654512,
+        "prevalence": 0.055201698513800426,
+        "lift_over_prevalence": 1.3076299362147212
+      }
+    ],
+    "rolling_origin": [
+      {
+        "train_frac": 0.5,
+        "n_test": 784,
+        "n_test_fail": 37,
+        "BER": 0.5130431636455732,
+        "ROC_AUC": 0.5727775968739824,
+        "PR_AUC": 0.053696742013622754
+      },
+      {
+        "train_frac": 0.55,
+        "n_test": 706,
+        "n_test_fail": 33,
+        "BER": 0.522310774911072,
+        "ROC_AUC": 0.5590076095276689,
+        "PR_AUC": 0.05084403369717971
+      },
+      {
+        "train_frac": 0.6,
+        "n_test": 627,
+        "n_test_fail": 28,
+        "BER": 0.5360720248032436,
+        "ROC_AUC": 0.5489506320057238,
+        "PR_AUC": 0.04809564995246768
+      },
+      {
+        "train_frac": 0.65,
+        "n_test": 549,
+        "n_test_fail": 28,
+        "BER": 0.514189744995887,
+        "ROC_AUC": 0.5651905675897998,
+        "PR_AUC": 0.05835449214595372
+      },
+      {
+        "train_frac": 0.7,
+        "n_test": 471,
+        "n_test_fail": 26,
+        "BER": 0.5043647363872084,
+        "ROC_AUC": 0.6063094209161624,
+        "PR_AUC": 0.07330837998313852
+      },
+      {
+        "train_frac": 0.75,
+        "n_test": 392,
+        "n_test_fail": 24,
+        "BER": 0.46739130434782616,
+        "ROC_AUC": 0.6838768115942029,
+        "PR_AUC": 0.10478277174440151
+      },
+      {
+        "train_frac": 0.8,
+        "n_test": 314,
+        "n_test_fail": 17,
+        "BER": 0.40592196474549413,
+        "ROC_AUC": 0.7587641117052881,
+        "PR_AUC": 0.16206551730464663
+      },
+      {
+        "train_frac": 0.85,
+        "n_test": 236,
+        "n_test_fail": 9,
+        "BER": 0.3042094958394518,
+        "ROC_AUC": 0.8316201664219285,
+        "PR_AUC": 0.35646066188411224
+      }
+    ],
+    "rolling_mean_auc": 0.6408121145793446,
+    "rolling_sd_auc": 0.10612877169392188,
+    "permutation": {
+      "observed_auc": 0.6063094209161624,
+      "null_mean": 0.4873834045594132,
+      "null_sd": 0.053516518832693004,
+      "p_value": 0.0,
+      "n_perm": 60
+    },
+    "triage": [
+      {
+        "top_k_pct": 5,
+        "n_flagged": 23,
+        "captured": 1,
+        "capture_pct": 3.8461538461538463,
+        "lift": 0.7876254180602006
+      },
+      {
+        "top_k_pct": 10,
+        "n_flagged": 47,
+        "captured": 3,
+        "capture_pct": 11.538461538461538,
+        "lift": 1.1563011456628476
+      },
+      {
+        "top_k_pct": 15,
+        "n_flagged": 70,
+        "captured": 5,
+        "capture_pct": 19.23076923076923,
+        "lift": 1.2939560439560438
+      },
+      {
+        "top_k_pct": 20,
+        "n_flagged": 94,
+        "captured": 7,
+        "capture_pct": 26.923076923076923,
+        "lift": 1.3490180032733223
+      },
+      {
+        "top_k_pct": 25,
+        "n_flagged": 117,
+        "captured": 7,
+        "capture_pct": 26.923076923076923,
+        "lift": 1.0838264299802762
+      },
+      {
+        "top_k_pct": 30,
+        "n_flagged": 141,
+        "captured": 10,
+        "capture_pct": 38.46153846153846,
+        "lift": 1.2847790507364976
+      },
+      {
+        "top_k_pct": 40,
+        "n_flagged": 188,
+        "captured": 16,
+        "capture_pct": 61.53846153846154,
+        "lift": 1.541734860883797
+      },
+      {
+        "top_k_pct": 50,
+        "n_flagged": 235,
+        "captured": 17,
+        "capture_pct": 65.38461538461539,
+        "lift": 1.3104746317512272
+      }
+    ],
+    "best_lift": 1.541734860883797,
+    "ber_shuffled": 0.37319588306430407,
+    "ber_forward": 0.5043647363872084
+  },
+  "watchlist": [
+    "S060",
+    "S104",
+    "S511",
+    "S478",
+    "S130",
+    "S206",
+    "S029",
+    "S034",
+    "S317",
+    "S342",
+    "S125",
+    "S022",
+    "S291",
+    "S126",
+    "S181",
+    "S041",
+    "S349",
+    "S429",
+    "S156",
+    "S080",
+    "S079",
+    "S096",
+    "S012",
+    "S148",
+    "S289",
+    "S154",
+    "S427",
+    "S018",
+    "S407",
+    "S469",
+    "S269",
+    "S352",
+    "S214",
+    "S543",
+    "S378"
+  ],
+  "exports": [
+    {
+      "table": "dim_date",
+      "rows": 91,
+      "columns": 12,
+      "bytes": 6998,
+      "file": "dim_date.csv"
+    },
+    {
+      "table": "dim_sensor",
+      "rows": 590,
+      "columns": 32,
+      "bytes": 225155,
+      "file": "dim_sensor.csv"
+    },
+    {
+      "table": "fact_run",
+      "rows": 1567,
+      "columns": 15,
+      "bytes": 184723,
+      "file": "fact_run.csv"
+    },
+    {
+      "table": "fact_measurement",
+      "rows": 54845,
+      "columns": 9,
+      "bytes": 6593813,
+      "file": "fact_measurement.csv"
+    },
+    {
+      "table": "fact_yield_week",
+      "rows": 14,
+      "columns": 18,
+      "bytes": 2941,
+      "file": "fact_yield_week.csv"
+    },
+    {
+      "table": "fact_gchart",
+      "rows": 103,
+      "columns": 9,
+      "bytes": 5910,
+      "file": "fact_gchart.csv"
+    }
+  ]
+}
