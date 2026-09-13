@@ -1,11 +1,7 @@
-"""Multiple-comparison control and effect sizes.
+"""Multiple testing correction and effect sizes.
 
-With 590 sensors, any sensor-by-sensor screen runs 590 simultaneous tests. At
-alpha = 0.05 that is ~30 false positives expected under a global null, so a raw
-p-value list is not evidence of anything. Everything in this project that
-screens across sensors reports Benjamini-Hochberg q-values *and* an effect size,
-because with n = 1567 a statistically significant shift can still be far too
-small to act on.
+590 tests at alpha=0.05 gives ~30 false positives by chance, so sensor screens
+report BH q-values along with an effect size.
 """
 
 from __future__ import annotations
@@ -18,12 +14,7 @@ from scipy import stats as sps
 
 
 def benjamini_hochberg(pvalues: np.ndarray) -> np.ndarray:
-    """Benjamini-Hochberg (1995) step-up FDR-adjusted p-values (q-values).
-
-    Handles NaN p-values by returning NaN in those positions and excluding them
-    from the count ``m`` -- a sensor that could not be tested must not inflate
-    the correction for the sensors that could.
-    """
+    """Benjamini-Hochberg q-values. NaN p-values stay NaN and don't count towards m."""
     p = np.asarray(pvalues, dtype=float)
     q = np.full(p.shape, np.nan)
     ok = ~np.isnan(p)
@@ -52,12 +43,7 @@ def cohens_d(a: np.ndarray, b: np.ndarray) -> float:
 
 
 def cliffs_delta(a: np.ndarray, b: np.ndarray) -> float:
-    """Cliff's delta in [-1, 1]: P(a > b) - P(a < b).
-
-    Distribution-free, unaffected by the heavy tails and discretisation present
-    in several SECOM sensors, and computed here in O(n log n) from the
-    Mann-Whitney U rather than by pairwise comparison.
-    """
+    """Cliff's delta, P(a > b) - P(a < b). Computed from the Mann-Whitney U."""
     a = a[~np.isnan(a)]
     b = b[~np.isnan(b)]
     na, nb = len(a), len(b)
@@ -83,12 +69,9 @@ class ShiftTest:
 
 
 def compare_groups(a: np.ndarray, b: np.ndarray) -> ShiftTest:
-    """Two-sample comparison of a single sensor between group ``a`` and ``b``.
+    """Compare one sensor between groups a and b (Welch t-test and Mann-Whitney).
 
-    Reports both a parametric (Welch, unequal variance) and a rank-based
-    (Mann-Whitney) p-value. Where the two disagree materially the sensor is
-    non-normal enough that the rank test is the one to trust; the analysis
-    scripts rank on the rank test.
+    The screens sort on Mann-Whitney since a lot of these sensors aren't normal.
     """
     a = np.asarray(a, dtype=float)
     b = np.asarray(b, dtype=float)
@@ -118,10 +101,9 @@ def screen_sensors(
     mask_a: np.ndarray,
     mask_b: np.ndarray,
 ) -> pd.DataFrame:
-    """Run :func:`compare_groups` across ``sensors`` and FDR-adjust the result.
+    """Run compare_groups on every sensor and add q_mannwhitney / q_welch.
 
-    Returns one row per sensor sorted by ascending Mann-Whitney q-value, with
-    columns ``q_mannwhitney`` and ``q_welch`` added.
+    Sorted by q_mannwhitney.
     """
     rows = []
     for s in sensors:

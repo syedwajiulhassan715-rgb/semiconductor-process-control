@@ -1,8 +1,4 @@
-"""Star-schema export for Power BI.
-
-Power BI's engine (VertiPaq) compresses and scans a narrow fact table joined to
-small dimensions far better than one wide table, and DAX time intelligence
-requires a contiguous marked date table. The layout here is therefore:
+"""Star schema CSV export for Power BI.
 
     dim_date ---<  fact_run  >--- dim_shift
                       |
@@ -10,15 +6,10 @@ requires a contiguous marked date table. The layout here is therefore:
               fact_measurement >--- dim_sensor
               fact_yield_week
 
-All relationships are single-direction one-to-many from the dimension to the
-fact, which is what keeps measures predictable; nothing here needs bidirectional
-filtering.
+Relationships are one-to-many, single direction (dimension -> fact).
 
-``fact_measurement`` is restricted to the watchlist sensors rather than all 412.
-At 1567 runs a full unpivot is 645,604 rows, which Power BI handles, but a
-watchlist of ~40 sensors gives 60k rows, refreshes instantly, and matches how a
-sensor chart is actually used -- nobody scrolls 412 sensors. The full cleaned
-table is exported separately for anyone who wants to widen the watchlist.
+fact_measurement only has the watchlist sensors (~40, about 60k rows) instead of
+all 412. The full cleaned table is written out separately.
 """
 
 from __future__ import annotations
@@ -30,11 +21,10 @@ import pandas as pd
 
 
 def build_dim_date(runs: pd.DataFrame) -> pd.DataFrame:
-    """Contiguous daily date table spanning the campaign.
+    """Daily date table for the whole campaign with no missing days.
 
-    Contiguous, including days the line did not run: a date table with holes
-    breaks DAX time intelligence. ``has_production`` flags the real gaps so
-    measures can exclude them rather than silently averaging zeros in.
+    DAX time intelligence needs every day present. has_production marks the
+    days that actually had runs.
     """
     start, end = runs["timestamp"].min().normalize(), runs["timestamp"].max().normalize()
     dates = pd.date_range(start, end, freq="D")
@@ -70,11 +60,9 @@ def build_dim_sensor(
     limits: pd.DataFrame,
     watchlist: list[str],
 ) -> pd.DataFrame:
-    """One row per raw sensor, carrying every disposition and evidence figure.
+    """One row per raw sensor with its audit and screening results.
 
-    Dropped sensors are kept in the dimension rather than filtered out. The
-    reason a sensor is absent from the analysis is itself a reportable fact, and
-    a reviewer should be able to see the whole 590 accounted for in one table.
+    Dropped sensors are kept too so you can see why they were dropped.
     """
     dim = audit.reset_index().rename(columns={"sensor": "sensor_id"})
     dim = dim.merge(drift, on="sensor_id", how="left")
@@ -117,7 +105,7 @@ def build_fact_run(
     model_score: np.ndarray | None,
     phase: pd.Series,
 ) -> pd.DataFrame:
-    """One row per production run: the grain of the whole model."""
+    """One row per production run."""
     fact = pd.DataFrame(
         {
             "run_id": clean["run_id"],
@@ -135,11 +123,8 @@ def build_fact_run(
             "cusum_signal": cusum["signal"].to_numpy(),
         }
     )
-    # An "episode" is a contiguous block of signalling runs -- one investigation,
-    # not one alarm per run. Detecting the transition needs a row-ordered lag,
-    # which DAX can only do awkwardly and slowly over a 1567-row fact table, so
-    # it is computed once here and exposed as a plain boolean for the measure
-    # layer to SUM.
+    # first run of each block of consecutive signals. Much easier to do here
+    # than in DAX.
     sig = cusum["signal"].to_numpy()
     fact["cusum_episode_start"] = sig & ~np.concatenate(([False], sig[:-1]))
     fact["model_score"] = model_score if model_score is not None else np.nan
@@ -151,12 +136,10 @@ def build_fact_measurement(
     watchlist: list[str],
     limits: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Unpivoted watchlist readings with Phase I limits and violation flags.
+    """Watchlist readings in long format with Phase I limits and flags.
 
-    ``robust_z`` is included as a pre-computed column rather than left to DAX:
-    it depends on baseline median and MAD, which are Phase I constants, and
-    recomputing them in DAX under arbitrary filter context would silently change
-    the baseline every time a user sliced the report.
+    robust_z is calculated here and not in DAX so the baseline doesn't change
+    when someone uses a slicer.
     """
     lim = limits.set_index("sensor_id")
     long = clean.melt(
@@ -181,12 +164,10 @@ def build_fact_measurement(
 
 
 def write_all(out_dir: str | Path, tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
-    """Write every table as UTF-8 CSV and return a manifest.
+    """Write each table to CSV and return a manifest.
 
-    ISO-8601 timestamps and no index column, so Power Query's type inference
-    lands on the right types without locale-dependent date parsing -- the raw
-    SECOM timestamps are day-first, which Power BI will silently misread as
-    month-first if handed the original format.
+    Timestamps go out as ISO-8601, otherwise Power BI reads the day-first
+    source dates as month-first.
     """
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)

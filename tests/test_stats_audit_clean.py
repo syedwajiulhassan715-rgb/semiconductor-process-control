@@ -1,10 +1,4 @@
-"""Tests for the statistics, audit and cleaning layers.
-
-The most important test in this file is
-``TestCausalImputation::test_imputation_cannot_see_the_future``. Every
-performance number in the project rests on the claim that no future information
-reaches a row, and that claim is worth testing directly rather than trusting.
-"""
+"""Tests for secom.stats, secom.audit and secom.clean."""
 
 from __future__ import annotations
 
@@ -25,9 +19,7 @@ from secom.stats import (
 )
 
 
-# ---------------------------------------------------------------------------
 # stats
-# ---------------------------------------------------------------------------
 
 
 class TestBenjaminiHochberg:
@@ -47,8 +39,7 @@ class TestBenjaminiHochberg:
         assert np.all(benjamini_hochberg(p) >= p - 1e-12)
 
     def test_nan_excluded_from_the_correction_count(self) -> None:
-        """A sensor that could not be tested must not inflate m for the rest."""
-        p = np.array([0.01, 0.02, np.nan, 0.03])
+        p =np.array([0.01, 0.02, np.nan, 0.03])
         q = benjamini_hochberg(p)
         assert np.isnan(q[2])
         assert np.allclose(q[[0, 1, 3]], benjamini_hochberg(np.array([0.01, 0.02, 0.03])))
@@ -61,7 +52,7 @@ class TestBenjaminiHochberg:
         rejections = [
             (benjamini_hochberg(rng.uniform(0, 1, 400)) < 0.05).sum() for _ in range(200)
         ]
-        # Under a global null, BH rejects nothing in the large majority of runs.
+        # all p-values are null, so most runs should reject nothing
         assert np.mean(np.array(rejections) > 0) < 0.10
 
 
@@ -86,12 +77,11 @@ class TestEffectSizes:
         assert cohens_d(a, np.array([1.0, 2.0, 3.0])) == pytest.approx(0.0, abs=1e-9)
 
     def test_cliffs_delta_is_robust_where_cohens_d_is_not(self) -> None:
-        """The reason the screens rank on the rank-based measure."""
         rng = np.random.default_rng(5)
-        a = np.r_[rng.normal(1, 0.3, 200), [500.0]]   # one wild outlier
+        a = np.r_[rng.normal(1, 0.3, 200), [500.0]]   # one big outlier
         b = rng.normal(0, 0.3, 200)
-        assert cliffs_delta(a, b) > 0.9      # still sees near-total separation
-        assert cohens_d(a, b) < 0.5          # swamped by the outlier's variance
+        assert cliffs_delta(a, b) > 0.9
+        assert cohens_d(a, b) < 0.5          # outlier inflates the SD
 
 
 class TestCompareGroups:
@@ -114,9 +104,7 @@ class TestCompareGroups:
         assert out["q_mannwhitney"].is_monotonic_increasing
 
 
-# ---------------------------------------------------------------------------
 # audit
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture
@@ -157,17 +145,13 @@ class TestAudit:
         assert audit.at["S006", "retained"]
 
     def test_constants_are_not_reported_as_duplicates(self, audit_frame) -> None:
-        """A frozen column duplicates every other frozen column.
-
-        Attributing it to duplication would hide the more specific defect, so
-        the cascade must resolve constants first.
-        """
+        """Constant columns all match each other, so check constant before duplicate."""
         frame, sensors = audit_frame
         audit = audit_sensors(frame, sensors)
         assert (audit.loc[["S002", "S003"], "disposition"] == "drop_constant").all()
 
     def test_nan_pattern_participates_in_duplicate_identity(self) -> None:
-        """Two columns with equal present values but different gaps differ."""
+        """Same values but different NaN positions shouldn't count as a duplicate."""
         a = np.array([1.0, 2.0, np.nan, 4.0])
         b = np.array([1.0, 2.0, 3.0, 4.0])
         frame = pd.DataFrame({"S001": a, "S002": b})
@@ -180,27 +164,17 @@ class TestAudit:
         assert lenient.at["S007", "disposition"] != "drop_sparse"
 
     def test_robust_outlier_fraction_resists_masking(self) -> None:
-        """Masking: several outliers together hide each other from an SD screen.
-
-        Ten extreme points inflate the standard deviation enough that the
-        +/- 5 SD envelope swallows all ten. The MAD is unmoved by 10% of the
-        data, so the same points remain 5 MAD-sigma out. SECOM has sensors with
-        excess kurtosis above 60, which is exactly this regime.
-        """
+        """10 extreme points inflate the SD so a 5 SD check misses them; MAD doesn't."""
         rng = np.random.default_rng(20)
         x = np.r_[rng.normal(0, 1, 90), np.full(10, 1000.0)]
         audit = audit_sensors(pd.DataFrame({"S001": x}), ["S001"])
         assert audit.at["S001", "robust_outlier_frac"] == pytest.approx(0.10)
 
         sd_flagged = np.abs(x - x.mean()) > 5 * x.std(ddof=1)
-        assert sd_flagged.sum() == 0  # the SD screen finds none of them
+        assert sd_flagged.sum() == 0
 
     def test_outlier_fraction_when_the_mad_is_degenerate(self) -> None:
-        """A sensor pinned at one value except for a few excursions.
-
-        MAD is 0, so there is no scale to measure against; the differing points
-        are still unambiguously outliers and must not be reported as zero.
-        """
+        """MAD is 0 here, but the one non-zero point should still count as an outlier."""
         x = np.r_[np.zeros(99), [1000.0]]
         audit = audit_sensors(pd.DataFrame({"S001": x}), ["S001"])
         assert audit.at["S001", "robust_outlier_frac"] == pytest.approx(0.01)
@@ -210,7 +184,7 @@ class TestMissingnessVsOutcome:
     def test_detects_informative_missingness(self) -> None:
         n = 400
         is_fail = np.r_[np.ones(100, bool), np.zeros(300, bool)]
-        col = np.where(is_fail, np.nan, 1.0)   # missing only when failing
+        col = np.where(is_fail, np.nan, 1.0)   # only missing on fails
         out = missingness_vs_outcome(pd.DataFrame({"S001": col}), ["S001"], is_fail)
         assert out["p_fisher"].iloc[0] < 1e-10
 
@@ -221,19 +195,12 @@ class TestMissingnessVsOutcome:
         assert out.empty
 
 
-# ---------------------------------------------------------------------------
 # cleaning
-# ---------------------------------------------------------------------------
 
 
 class TestCausalImputation:
     def test_imputation_cannot_see_the_future(self) -> None:
-        """The load-bearing guarantee of the whole project.
-
-        Mutating values *after* a gap must not change what is imputed into that
-        gap. If this fails, every forward-evaluated model number is optimistic
-        and the comparison against the shuffled protocol is meaningless.
-        """
+        """Changing values after a gap shouldn't change what gets filled into it."""
         rng = np.random.default_rng(8)
         col = rng.normal(size=300)
         col[150] = np.nan
@@ -248,7 +215,7 @@ class TestCausalImputation:
     def test_uses_trailing_window_only(self) -> None:
         col = np.array([1.0, 1.0, 1.0, np.nan, 50.0, 50.0])
         out, _ = causal_impute(pd.DataFrame({"S001": col}), ["S001"], window=3)
-        assert out.loc[3, "S001"] == pytest.approx(1.0)  # not pulled towards 50
+        assert out.loc[3, "S001"] == pytest.approx(1.0)
 
     def test_leading_gap_is_seeded_and_logged(self) -> None:
         col = np.array([np.nan, np.nan, 5.0, 6.0])
@@ -276,9 +243,7 @@ class TestTimeContext:
         assert out["minutes_since_prev"].iloc[1] == pytest.approx(37.0)
 
 
-# ---------------------------------------------------------------------------
-# io + end-to-end, skipped when the raw download is absent
-# ---------------------------------------------------------------------------
+# io / real data (skipped if data/raw isn't downloaded)
 
 RAW = pytest.importorskip("pathlib").Path(__file__).resolve().parents[1] / "data" / "raw"
 needs_data = pytest.mark.skipif(

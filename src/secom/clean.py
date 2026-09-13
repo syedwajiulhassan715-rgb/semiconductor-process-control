@@ -1,12 +1,7 @@
-"""Cleaning: apply the audit dispositions and impute the surviving gaps.
+"""Apply the audit results and impute the remaining gaps.
 
-Imputation here is deliberately **causal** -- every imputed value is computed
-from runs that had already happened at that point in the sequence. A centred
-rolling statistic, or a global median computed over the whole file, would give
-slightly better-looking imputations and would also leak information backwards in
-time. Since the stated purpose of this dataset is deciding whether sensors can
-support *live* monitoring, an imputation that could not be executed in real time
-would invalidate the answer. See DECISIONS.md.
+Imputation only looks at earlier runs (no centred windows or whole-file medians)
+so it could actually be run live. See DECISIONS.md.
 """
 
 from __future__ import annotations
@@ -14,13 +9,11 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-#: Trailing window, in runs, for the causal rolling median used to impute gaps.
-#: At the median inter-arrival of 37 minutes this spans roughly half a shift,
-#: long enough to be stable and short enough to track drift over the 89-day
-#: campaign.
+#: Trailing window (in runs) for the rolling median. About half a shift at the
+#: median 37 min between runs.
 IMPUTE_WINDOW = 25
 
-#: Shift boundaries (hour of day) for a conventional 3-shift fab schedule.
+#: Shift start/end hours. Anything else is shift C.
 SHIFT_BOUNDS = ((6, 14, "A"), (14, 22, "B"))
 
 
@@ -32,12 +25,10 @@ def _shift_label(hour: int) -> str:
 
 
 def add_time_context(runs: pd.DataFrame) -> pd.DataFrame:
-    """Attach calendar and cadence columns used for subgrouping and in Power BI.
+    """Add date/week/shift columns and minutes_since_prev.
 
-    ``minutes_since_prev`` matters: the line does not run on a fixed cadence
-    (median 37 min, 90th percentile 186 min, longest gap 2 days), so any
-    per-run chart is unequally spaced in time and gaps are themselves a process
-    event worth seeing.
+    Runs aren't evenly spaced (median 37 min, longest gap 2 days), which is why
+    the gap column is there.
     """
     out = runs.copy()
     ts = out["timestamp"]
@@ -62,19 +53,14 @@ def causal_impute(
     *,
     window: int = IMPUTE_WINDOW,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Fill gaps using only prior runs; return the filled frame and a log.
+    """Fill gaps using only earlier runs. Returns (filled frame, log).
 
-    The cascade for each missing cell, in order:
+    For each missing value, try in order:
 
-    1. trailing rolling median over the previous ``window`` runs;
-    2. expanding median over all previous runs, for early gaps where the
-       rolling window has nothing in it yet;
-    3. the first observed value, for a sensor whose very first runs are missing
-       and which therefore has no history at all.
-
-    Step 3 is the only step that looks forward. It is unavoidable -- there is no
-    prior information by construction -- and the log records exactly how many
-    cells took that path so the exposure is quantified rather than hidden.
+    1. median of the previous `window` runs
+    2. median of all previous runs
+    3. first observed value (only for gaps at the very start, so this is the one
+       case that looks ahead; logged as filled_seed_lookahead)
     """
     out = frame.copy()
     rows = []
@@ -126,11 +112,7 @@ def build_clean(
 def standardise(
     frame: pd.DataFrame, sensors: list[str], baseline: np.ndarray
 ) -> pd.DataFrame:
-    """Robust z-scores against a baseline window (median / MAD-sigma).
-
-    Median and MAD rather than mean and SD so that the excursion being looked
-    for does not set the scale it is measured against.
-    """
+    """Robust z-scores (median / MAD) against a baseline window."""
     base = frame.loc[baseline, sensors]
     med = base.median()
     mad = (base - med).abs().median() * 1.4826

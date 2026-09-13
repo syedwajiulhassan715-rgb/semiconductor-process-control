@@ -1,23 +1,8 @@
-"""Statistical process control charts.
+"""SPC charts: individuals, EWMA, Nelson rules, p / Laney p', g-chart, Bernoulli CUSUM.
 
-Three things in here are the parts that usually get done wrong, and are the
-reason this is hand-rolled rather than pulled from a library:
-
-**Phase I / Phase II are separated.** Control limits are estimated once from a
-window that has been argued to be stable, then held fixed while later data is
-judged against them. Recomputing limits from all the data -- the default in most
-tutorials -- lets an excursion inflate the very limits meant to catch it.
-
-**Limits come from short-term variation, not the overall standard deviation.**
-For individuals charts sigma is estimated from the average moving range over
-d2(2), which is insensitive to a sustained shift sitting inside the window. The
-sample standard deviation is not.
-
-**Attribute charts are tested for overdispersion.** A textbook p-chart assumes
-the only run-to-run variation in failure rate is binomial. Real fab yield data
-is almost never that well behaved, and an uncorrected p-chart then alarms
-constantly. This module measures the dispersion and applies the Laney p' chart
-when it is warranted, rather than assuming either way.
+Written by hand mainly so that Phase I limits stay fixed during Phase II, sigma
+comes from the moving range instead of the overall SD, and p-charts get checked
+for overdispersion before picking the limits.
 """
 
 from __future__ import annotations
@@ -28,8 +13,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats as sps
 
-#: Hartley's d2 for subgroup size n -- E[range] / sigma for a normal sample.
-#: d2(2) = 1.128379... is 2/sqrt(pi), used for moving-range sigma estimation.
+#: d2 constants by subgroup size (E[range] / sigma). d2(2) = 2/sqrt(pi).
 D2 = {
     2: 1.128379167,
     3: 1.692569319,
@@ -48,11 +32,7 @@ D3_MR = 0.0
 
 
 def c4(n: int) -> float:
-    """Unbiasing constant for the sample standard deviation.
-
-    ``E[s] = c4(n) * sigma``. Computed from the exact gamma-function definition
-    rather than a lookup table so it is valid at any n.
-    """
+    """c4 unbiasing constant, E[s] = c4(n) * sigma. Uses the gamma formula so any n works."""
     if n < 2:
         return np.nan
     from scipy.special import gammaln
@@ -62,9 +42,7 @@ def c4(n: int) -> float:
     )
 
 
-# --------------------------------------------------------------------------
 # Variables charts
-# --------------------------------------------------------------------------
 
 
 @dataclass(frozen=True)
@@ -99,14 +77,10 @@ def individuals_limits(
     k: float = 3.0,
     trim_iterations: int = 3,
 ) -> ControlLimits:
-    """Phase I individuals-chart limits with iterative exclusion of outliers.
+    """Phase I individuals chart limits.
 
-    A Phase I baseline is only usable if it is itself in control. Points outside
-    the trial limits are excluded and the limits recomputed, up to
-    ``trim_iterations`` times or until stable -- the standard Phase I practice of
-    removing assignable-cause points before fixing the limits. The number
-    excluded is reported so that an over-trimmed baseline is visible rather than
-    hidden.
+    Points outside the trial limits are dropped and the limits recalculated, up
+    to trim_iterations times. n_excluded says how many got dropped.
     """
     x = np.asarray(x, dtype=float)
     x = x[~np.isnan(x)]
@@ -168,13 +142,10 @@ def ewma(
     lam: float = 0.2,
     L: float = 2.7,
 ) -> pd.DataFrame:
-    """EWMA chart against fixed Phase I ``limits``.
+    """EWMA chart using fixed Phase I limits.
 
-    Defaults of lambda = 0.2 with L = 2.7 are the standard small-shift design
-    (Montgomery): roughly an in-control ARL of 500 with good sensitivity to a
-    1-sigma sustained shift, which an individuals chart detects only slowly.
-    Limits use the exact time-varying variance factor, so the first few points
-    are correctly tighter rather than being drawn at the asymptote.
+    lam=0.2, L=2.7 is the usual small-shift setup from Montgomery (ARL0 ~500).
+    Limits use the exact time-varying variance, so the first points are tighter.
     """
     x = np.asarray(x, dtype=float)
     z = np.empty(len(x))
@@ -201,9 +172,7 @@ def ewma(
     )
 
 
-# --------------------------------------------------------------------------
-# Nelson run rules
-# --------------------------------------------------------------------------
+# Nelson rules
 
 NELSON_DESCRIPTIONS = {
     1: "1 point beyond 3 sigma",
@@ -218,12 +187,10 @@ NELSON_DESCRIPTIONS = {
 
 
 def nelson_rules(x: np.ndarray, limits: ControlLimits) -> pd.DataFrame:
-    """Evaluate all eight Nelson rules against fixed limits.
+    """Check all 8 Nelson rules against fixed limits, one bool column per rule.
 
-    Returns a boolean frame with one column per rule. Rules 7 and 8 detect
-    limits that no longer match the process (stratification and mixture) rather
-    than the process moving, which is why they are worth keeping: on this
-    dataset they are the ones that fire when a sensor's variance changes.
+    On this data rules 7 and 8 are the ones that fire when a sensor's variance
+    changes.
     """
     x = np.asarray(x, dtype=float)
     n = len(x)
@@ -254,9 +221,7 @@ def nelson_rules(x: np.ndarray, limits: ControlLimits) -> pd.DataFrame:
     return pd.DataFrame(out)
 
 
-# --------------------------------------------------------------------------
-# Attribute chart for yield
-# --------------------------------------------------------------------------
+# p-chart
 
 
 @dataclass
@@ -282,32 +247,16 @@ def p_chart(
     dispersion_subset: np.ndarray | None = None,
     force_type: str | None = None,
 ) -> PChartResult:
-    """Proportion-defective chart with variable subgroup sizes.
+    """p-chart with variable subgroup sizes, switches to Laney p' if overdispersed.
 
-    Control limits vary by subgroup because the sizes vary, which is the whole
-    point of charting a proportion rather than a count.
+    sigma_z is Laney's statistic (average moving range of the z-scores / d2).
+    It's about 1 for binomial data; above 1.2 the limits get widened by sigma_z.
+    A chi-square dispersion test is reported as well.
 
-    Overdispersion is tested explicitly. ``sigma_z`` is the standard deviation of
-    the moving range of the standardised proportions divided by d2(2) -- Laney's
-    statistic. Under pure binomial variation it is 1. Above roughly 1.2 the
-    between-subgroup variation exceeds what binomial sampling can explain, the
-    conventional p-chart is too tight, and limits are widened by ``sigma_z``
-    (the Laney p' chart). A complementary chi-square dispersion test is reported
-    alongside so the call does not rest on one threshold.
-
-    ``baseline`` selects the subgroups used to estimate the centre line; when
-    omitted all subgroups are used. Supplying a stable window makes this a
-    Phase I / Phase II chart rather than a self-referential one.
-
-    ``dispersion_subset`` separately selects the subgroups used to estimate
-    ``sigma_z``, defaulting to all of them. The two are deliberately decoupled.
-    The centre line should be pinned to a window argued to be stable, or an
-    excursion redefines "normal" as it happens. The dispersion estimate should
-    use every subgroup available: it is a variance component of the process, the
-    moving-range estimator is by construction insensitive to sustained level
-    shifts, and a short Phase I window would leave it resting on three or four
-    moving ranges. On this dataset Phase I is five weekly subgroups, which is
-    far too thin to estimate a dispersion factor from.
+    baseline: subgroups used for the centre line (default: all).
+    dispersion_subset: subgroups used for sigma_z (default: all). Separate from
+    baseline because Phase I here is only 5 weeks, which isn't enough moving
+    ranges to estimate sigma_z from.
     """
     defectives = np.asarray(defectives, dtype=float)
     sizes = np.asarray(sizes, dtype=float)
@@ -324,7 +273,7 @@ def p_chart(
     with np.errstate(divide="ignore", invalid="ignore"):
         z = (p - p_bar) / sigma_i
 
-    # Laney's sigma_z from the moving range of standardised proportions.
+    # Laney sigma_z
     disp = (
         np.ones(len(sizes), dtype=bool)
         if dispersion_subset is None
@@ -334,7 +283,7 @@ def p_chart(
     zb = zb[np.isfinite(zb)]
     sigma_z = float(np.mean(np.abs(np.diff(zb))) / D2[2]) if len(zb) > 1 else 1.0
 
-    # Independent chi-square test of binomial dispersion on the baseline.
+    # chi-square dispersion test on the baseline subgroups
     obs = defectives[base]
     exp = sizes[base] * p_bar
     with np.errstate(divide="ignore", invalid="ignore"):
@@ -382,9 +331,7 @@ def p_chart(
     )
 
 
-# --------------------------------------------------------------------------
-# Low-rate attribute chart
-# --------------------------------------------------------------------------
+# g-chart
 
 
 @dataclass
@@ -407,30 +354,17 @@ def g_chart(
     alpha: float = 0.0027,
     baseline_p: float | None = None,
 ) -> GChartResult:
-    """Chart the number of passing runs between consecutive failures.
+    """g-chart: number of passing runs between consecutive failures.
 
-    Motivation: at a failure rate of 6.6% a proportion chart needs a subgroup of
-    at least 127 runs before its lower limit rises above zero, so at any
-    realistic subgrouping it is structurally incapable of signalling that yield
-    has *improved*. The g-chart covers that gap. It charts the interval between
-    failures directly, needs no subgrouping, and its upper limit responds as
-    soon as one unusually long clean run occurs.
+    At a 6.6% fail rate a p-chart needs 127+ runs per subgroup before the LCL is
+    above zero, so it can't show an improvement. This one can.
 
-    Limits are exact geometric quantiles, not mean +/- 3 sigma. The geometric
-    distribution is strongly right-skewed, so symmetric limits would put the
-    lower limit below zero and place the upper limit in the wrong tail
-    probability. ``alpha`` defaults to 0.0027, matching the false-alarm rate of a
-    conventional 3-sigma chart so the two are comparable.
+    Limits are exact geometric quantiles since the distribution is very skewed.
+    alpha=0.0027 matches a normal 3-sigma chart.
 
-    **Known limitation, and the reason this is not the whole answer.** The
-    lower limit is useful only at very low failure rates. Because P(gap = 0)
-    equals ``p`` exactly, as soon as ``p`` exceeds ``alpha / 2`` -- about 0.14%
-    at the default alpha -- the lower quantile pins to zero and *no* single gap,
-    however short, can breach it. At the 3.1% baseline rate of this dataset the
-    lower limit is zero, so this chart detects improvement but not degradation.
-    Degradation detection is the job of :func:`bernoulli_cusum`, which
-    accumulates evidence across runs instead of judging each gap alone. Use the
-    two together; neither is sufficient by itself.
+    Note the LCL is 0 whenever p > alpha/2 (~0.14%), which includes this dataset,
+    so in practice this only detects improvement. Use bernoulli_cusum for
+    degradation.
 
     Parameters
     ----------
@@ -448,12 +382,12 @@ def g_chart(
     if len(fail_positions) < 2:
         raise ValueError("need at least two failures to form a gap")
 
-    # Passing runs strictly between consecutive failures.
+    # passing runs between consecutive failures
     gaps = np.diff(fail_positions) - 1
     p = float(baseline_p if baseline_p is not None else len(fail_positions) / n_total)
     p = min(max(p, 1e-9), 1 - 1e-9)
 
-    # Number of failures (successes=passes) before the first success, support 0,1,2,...
+    # loc=-1 shifts scipy's geom so the support starts at 0
     dist = sps.geom(p, loc=-1)
     lcl = float(dist.ppf(alpha / 2.0))
     ucl = float(dist.ppf(1.0 - alpha / 2.0))
@@ -490,9 +424,7 @@ def g_chart(
     )
 
 
-# --------------------------------------------------------------------------
-# Memory-based attribute chart
-# --------------------------------------------------------------------------
+# Bernoulli CUSUM
 
 
 @dataclass
@@ -516,33 +448,20 @@ def bernoulli_cusum(
     h: float,
     reset_on_signal: bool = True,
 ) -> BernoulliCusumResult:
-    """One-sided upper CUSUM on Bernoulli outcomes (Reynolds & Stoumbos).
+    """One-sided upper Bernoulli CUSUM (Reynolds & Stoumbos).
 
-    A Shewhart p-chart judges each subgroup on its own and therefore reacts to
-    spikes, not to levels. A sustained shift from ``p0`` to ``p1`` is exactly the
-    case it handles worst. The CUSUM accumulates the log-likelihood ratio for
-    each run:
+    Per run it adds:
 
-        +log(p1/p0)            on a fail
-        +log((1-p1)/(1-p0))    on a pass   (negative, so good runs pay down)
+        log(p1/p0)            on a fail
+        log((1-p1)/(1-p0))    on a pass (negative)
 
-    and signals when the running total exceeds ``h``. It needs no subgrouping,
-    so it is immune to the rational-subgrouping argument entirely, and it uses
-    every run the moment it happens.
+    floored at 0, and signals when the total goes above h. Get h from
+    calibrate_cusum_h.
 
-    ``h`` should be obtained from :func:`calibrate_cusum_h` for a stated
-    in-control ARL rather than guessed.
-
-    ``reset_on_signal`` restarts the statistic at zero once it crosses ``h``,
-    which is how a CUSUM is actually operated: it signals, an engineer
-    investigates, and the chart is restarted against the process as it now
-    stands. Without the reset the statistic keeps integrating -- on this dataset
-    the opening excursion drives it to ~28, and since each passing run pays down
-    only ``log((1-p1)/(1-p0))`` it would take roughly 900 consecutive good runs
-    to fall back below the limit. The chart would then read as alarming for the
-    entire campaign, including the five weeks the process was demonstrably
-    healthy, and would be incapable of flagging the later excursion as a *new*
-    event. Set it to False only for a retrospective view of cumulative evidence.
+    reset_on_signal sets the total back to 0 after a signal. Without it the
+    early excursion in this data pushes the statistic to ~28 and it takes ~900
+    good runs to come back down, so the rest of the campaign looks like one
+    long alarm.
     """
     x = np.asarray(is_fail, dtype=bool)
     if not (0 < p0 < 1 and 0 < p1 < 1):
@@ -595,12 +514,10 @@ def calibrate_cusum_h(
     max_run: int = 20000,
     seed: int = 20080719,
 ) -> tuple[float, float]:
-    """Find the CUSUM threshold ``h`` giving ``target_arl0`` under ``p0``.
+    """Find the h that gives target_arl0 when the fail rate is p0.
 
-    Returns ``(h, achieved_arl0)``. Solved by simulation rather than by a
-    Markov-chain approximation because the Bernoulli CUSUM lives on a lattice of
-    only two increment sizes, where the usual continuous approximations to the
-    ARL are poor at low ``p0``.
+    Returns (h, achieved_arl0). Simulation + bisection, since the usual ARL
+    approximations aren't great for this at low p0.
     """
     rng = np.random.default_rng(seed)
     w_fail = np.log(p1 / p0)
@@ -608,7 +525,7 @@ def calibrate_cusum_h(
     stream = rng.random((n_sim, max_run)) < p0
     inc = np.where(stream, w_fail, w_pass)
 
-    # Running maxima of the CUSUM path, computed once and reused per candidate h.
+    # simulate the paths once and reuse them for every h
     acc = np.zeros(n_sim)
     paths = np.empty((n_sim, max_run), dtype=np.float32)
     for t in range(max_run):
@@ -619,7 +536,7 @@ def calibrate_cusum_h(
         hit = paths > h
         any_hit = hit.any(axis=1)
         first = np.where(any_hit, hit.argmax(axis=1) + 1, max_run)
-        # Censored runs bias ARL downwards; report the censored mean and flag it.
+        # paths that never signal count as max_run, so this is a bit low
         return float(first.mean())
 
     lo, hi = 0.5, 20.0

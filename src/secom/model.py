@@ -1,16 +1,9 @@
-"""Predictive screening, evaluated the way a fab would have to deploy it.
+"""Failure prediction models and their evaluation.
 
-The published SECOM baselines report balanced error rates of roughly 33-40%
-using 10-fold cross-validation. Ten-fold CV shuffles the runs, so a model is
-routinely trained on October and tested on August. This dataset has pervasive
-drift -- 71% of surviving sensors show a monotone trend against run order -- and
-the failure rate itself falls from 12.9% to 4.1% partway through. Under those
-conditions a shuffled split lets the model learn *when* a run happened and score
-well without learning anything about *why* it failed.
-
-A monitoring model can only ever see the past. Everything here is therefore
-evaluated on a forward chronological split, and the shuffled result is computed
-alongside purely to quantify how much optimism the shuffle buys.
+Published SECOM results use shuffled 10-fold CV. This data drifts a lot (71% of
+kept sensors trend with run order, and the fail rate drops from 12.9% to 4.1%),
+so shuffling lets a model pick up on time instead of anything real. The main
+evaluation here is a forward time split; shuffled CV is only there to compare.
 """
 
 from __future__ import annotations
@@ -69,16 +62,10 @@ class EvalResult:
 
 
 def make_models(seed: int = 20080719) -> dict[str, Pipeline]:
-    """Two deliberately different model classes.
+    """L2 logistic regression plus gradient boosting.
 
-    Regularised logistic regression is the reference: linear, inspectable, and
-    the closest match to the linear classifiers behind the published baselines.
-    Gradient boosting is included to check whether the ceiling is set by the
-    model or by the data -- if a flexible learner does no better, the limit is
-    informational, not algorithmic.
-
-    ``class_weight='balanced'`` is used rather than resampling so that no
-    synthetic rows enter the evaluation.
+    Boosting is there to check whether a more flexible model does any better.
+    Using class_weight='balanced' instead of resampling.
     """
     return {
         "logistic_l2": Pipeline(
@@ -151,11 +138,9 @@ def evaluate_forward(
     *,
     train_frac: float = 0.7,
 ) -> list[EvalResult]:
-    """Train on the first ``train_frac`` of runs in time order, test on the rest.
+    """Train on the first train_frac of runs (by time), test on the rest.
 
-    The decision threshold is fixed at 0.5 on the balanced-weighted probability,
-    which is the operating point implied by ``class_weight='balanced'``. It is
-    chosen on the training data only and never tuned on the test window.
+    Threshold is fixed at 0.5, not tuned on the test set.
     """
     n = len(X)
     cut = int(n * train_frac)
@@ -182,12 +167,8 @@ def evaluate_shuffled(
     n_splits: int = 10,
     seed: int = 20080719,
 ) -> list[EvalResult]:
-    """Stratified 10-fold CV, matching the published baseline protocol.
-
-    Reported only as a contrast to :func:`evaluate_forward`. The gap between the
-    two is the amount of apparent performance that comes from the shuffle rather
-    than from the sensors.
-    """
+    """Stratified 10-fold CV like the published baselines, for comparison with
+    evaluate_forward."""
     cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=seed)
     out = []
     for name, model in models.items():
@@ -210,11 +191,9 @@ def permutation_null(
     train_frac: float = 0.7,
     seed: int = 20080719,
 ) -> tuple[float, np.ndarray]:
-    """Forward-split ROC AUC under label permutation.
+    """Forward-split AUC with shuffled labels, i.e. what AUC looks like with no signal.
 
-    Establishes what AUC this pipeline produces on this data when there is by
-    construction no signal, which is the only honest reference point for a
-    modest AUC on 104 positives. Returns ``(observed_auc, null_aucs)``.
+    Returns (observed_auc, null_aucs).
     """
     rng = np.random.default_rng(seed)
     observed = evaluate_forward(X, y, {"m": model}, train_frac=train_frac)[0].roc_auc

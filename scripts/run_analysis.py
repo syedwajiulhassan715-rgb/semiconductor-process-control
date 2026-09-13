@@ -1,13 +1,11 @@
-"""End-to-end analysis: raw SECOM in, Power BI star schema and figures out.
+"""Runs the full analysis: raw SECOM data -> figures, results.json and Power BI CSVs.
 
-Run from the repository root::
+From the repo root:
 
     python scripts/00_fetch_data.py
     python scripts/run_analysis.py
 
-Every figure in reports/ and every number quoted in reports/ENGINEERING_REPORT.md
-is produced by this script and written to reports/results.json, so any claim in
-the write-up can be traced to a computed value rather than a remembered one.
+The numbers in reports/ENGINEERING_REPORT.md come from reports/results.json.
 """
 
 from __future__ import annotations
@@ -59,8 +57,8 @@ PROCESSED = ROOT / "data" / "processed"
 POWERBI_DATA = ROOT / "data" / "powerbi"
 FIGS = ROOT / "reports" / "figures"
 
-#: Phase I baseline: the longest contiguous run of weeks whose standardised
-#: weekly failure proportions all sit within +/- 2.4 sigma of their own mean.
+# Phase I baseline weeks: longest stretch where the weekly fail rates all stay
+# within +/- 2.4 sigma
 BASELINE_WEEKS = (35, 39)
 PRE_BASELINE_MAX_WEEK = 34
 TRAIN_FRAC = 0.70
@@ -100,7 +98,7 @@ def main() -> int:
         d.mkdir(parents=True, exist_ok=True)
     R: dict = {}
 
-    # ---------------------------------------------------------------- ingest
+    # load
     data = load_raw(RAW)
     runs = data.runs
     R["dataset"] = {
@@ -115,7 +113,7 @@ def main() -> int:
     }
     print(f"[1/9] loaded {len(runs)} runs x {len(data.sensors)} sensors")
 
-    # ----------------------------------------------------------------- audit
+    # audit
     audit = audit_sensors(runs, data.sensors)
     miss = missingness_vs_outcome(runs, data.sensors, runs["is_fail"].to_numpy())
     R["audit"] = {
@@ -129,7 +127,7 @@ def main() -> int:
     }
     print(f"[2/9] audit: retained {audit['retained'].sum()} of {len(audit)}")
 
-    # ----------------------------------------------------------------- clean
+    # clean
     clean, retained, impute_log = build_clean(runs, audit)
     clean = clean.reset_index(drop=True)
     n_cells = len(clean) * len(retained)
@@ -151,7 +149,7 @@ def main() -> int:
     m_base = (wk >= BASELINE_WEEKS[0]) & (wk <= BASELINE_WEEKS[1])
     m_post = wk > BASELINE_WEEKS[1]
 
-    # ------------------------------------------------------------ yield SPC
+    # yield charts
     wkly = clean.groupby("year_week")["is_fail"].agg(n="size", d="sum").reset_index()
     naive = p_chart(
         wkly["d"].to_numpy(), wkly["n"].to_numpy(),
@@ -161,11 +159,8 @@ def main() -> int:
         wkly["d"].to_numpy(), wkly["n"].to_numpy(),
         labels=wkly["year_week"].to_numpy(),
     )
-    # Retrospective Phase I stability assessment ("was this process ever in
-    # control?") centres on all weeks. The monitoring chart the Power BI model
-    # reproduces is a different question -- "is this week consistent with the
-    # baseline?" -- and must centre on the Phase I window only. Both are
-    # exported so the DAX has an unambiguous reference to be checked against.
+    # laney is centred on all weeks. The Power BI chart is centred on the
+    # Phase I weeks only, so compute that version too to check the DAX against.
     base_weeks = (
         clean.groupby("year_week")["iso_week"].first().reindex(wkly["year_week"])
         .between(*BASELINE_WEEKS).to_numpy()
@@ -220,7 +215,7 @@ def main() -> int:
     print(f"[4/9] yield: sigma_z={laney.sigma_z:.3f}, naive flags "
           f"{naive.table['violation'].sum()}, Laney flags {laney.table['violation'].sum()}")
 
-    # ---------------------------------------------------------------- CUSUM
+    # CUSUM
     p0 = float(is_fail[m_base].mean())
     p1 = 2 * p0
     h, arl0 = calibrate_cusum_h(p0, p1, target_arl0=500, n_sim=3000, max_run=8000, seed=SEED)
@@ -252,7 +247,7 @@ def main() -> int:
     print(f"[5/9] CUSUM: h={h:.3f}, ARL0={arl0:.0f}; Phase II signal in "
           f"{detect['phase_ii']['runs_to_signal']} runs")
 
-    # ----------------------------------------------------- sensor evidence
+    # sensor screening
     rho = np.empty(len(retained)); pv = np.empty(len(retained))
     for i, s in enumerate(retained):
         rho[i], pv[i] = sps.spearmanr(clean["run_index"], clean[s])
@@ -281,7 +276,7 @@ def main() -> int:
         ].tolist(),
     }
 
-    # Confound check on the whole-dataset hits.
+    # do the all-runs hits still hold up inside the stable weeks?
     hits = fail_all.loc[fail_all["q_mannwhitney"] < 0.05, "sensor"].tolist()
     stable_p = fail_stable.set_index("sensor")["p_mannwhitney"]
     confound = pd.DataFrame(
@@ -298,7 +293,7 @@ def main() -> int:
           f"{R['sensors']['fail_all_sig']} raw hits -> "
           f"{len(R['sensors']['hits_surviving_confound_check'])} survive confound check")
 
-    # Watchlist: everything with any tier-1/2 evidence, plus top regime movers.
+    # watchlist: tier 1/2 sensors + top 25 regime movers, max 40
     watch = list(
         dict.fromkeys(
             fail_stable.loc[fail_stable["q_mannwhitney"] < 0.05, "sensor"].tolist()
@@ -327,7 +322,7 @@ def main() -> int:
         )
     limits = pd.DataFrame(lim_rows)
 
-    # ---------------------------------------------------------------- model
+    # model
     X, y = clean[retained], is_fail
     model_rows = [r.as_row() for r in evaluate_shuffled(X, y, make_models(seed=SEED))]
     model_rows += [r.as_row() for r in evaluate_forward(X, y, make_models(seed=SEED), train_frac=TRAIN_FRAC)]
@@ -397,13 +392,13 @@ def main() -> int:
     print(f"[7/9] model: BER shuffled {shuffled_ber:.3f} -> forward {forward_ber:.3f}; "
           f"AUC {obs_auc:.3f} vs null {null.mean():.3f}")
 
-    # -------------------------------------------------------------- figures
+    # figures
     _figures(clean, wkly, naive, laney, cusum_all, m_pre, m_base, m_post,
              audit, regime, fail_all, fail_stable, confound, rolling_df,
              null, obs_auc, triage_df, models_df, R)
     print("[8/9] figures written")
 
-    # -------------------------------------------------------------- exports
+    # exports
     phase = pd.Series(
         np.select([m_pre, m_base], ["0 - pre-baseline", "1 - Phase I baseline"],
                   default="2 - Phase II monitored"),
@@ -418,7 +413,7 @@ def main() -> int:
     yield_week = laney.table.rename(columns={"subgroup": "year_week"}).copy()
     yield_week["naive_ucl"] = naive.table["ucl"].to_numpy()
     yield_week["naive_violation"] = naive.table["violation"].to_numpy()
-    # Phase I-centred monitoring limits: this is what the DAX must reproduce.
+    # Phase I centred limits (what the DAX should match)
     yield_week["center_phase1"] = laney_p1.table["center"].to_numpy()
     yield_week["lcl_phase1"] = laney_p1.table["lcl"].to_numpy()
     yield_week["ucl_phase1"] = laney_p1.table["ucl"].to_numpy()
@@ -515,7 +510,7 @@ def _figures(clean, wkly, naive, laney, cusum_all, m_pre, m_base, m_post,
     ax.tick_params(axis="x", labelsize=7.5); ax.grid(axis="y", lw=0.6)
     fig.tight_layout(); fig.savefig(FIGS / "fig03_evidence_funnel.png"); plt.close(fig)
 
-    # Fig 4: the surviving sensor
+    # Fig 4: sensor that survived the confound check
     surv = R["sensors"]["hits_surviving_confound_check"]
     if surv:
         s = surv[0]

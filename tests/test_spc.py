@@ -1,9 +1,4 @@
-"""Tests for the control-chart engine.
-
-Where a published reference value exists, the test asserts against that value
-rather than against whatever the code currently returns. A test that only
-asserts self-consistency cannot catch a wrong constant.
-"""
+"""Tests for secom.spc. Constants are checked against published tables where possible."""
 
 from __future__ import annotations
 
@@ -24,8 +19,7 @@ from secom.spc import (
     p_chart,
 )
 
-# c4(n) as published in Montgomery, *Introduction to Statistical Quality
-# Control*, Appendix VI, and ASTM E2587.
+# c4 values from Montgomery, Intro to SQC, Appendix VI
 C4_PUBLISHED = {
     2: 0.7979, 3: 0.8862, 4: 0.9213, 5: 0.9400, 6: 0.9515,
     7: 0.9594, 8: 0.9650, 9: 0.9693, 10: 0.9727, 25: 0.9896,
@@ -53,20 +47,15 @@ class TestMovingRangeSigma:
             moving_range_sigma(np.random.default_rng(s).normal(100, 5, 400))
             for s in range(200)
         ]
-        # Unbiased to within Monte Carlo error of the mean over 200 replicates.
+        # mean over 200 samples should be close to the true sigma
         assert np.mean(est) == pytest.approx(5.0, rel=0.02)
 
     def test_is_robust_to_a_sustained_shift(self) -> None:
-        """The property that makes MR-based sigma the right Phase I estimator.
-
-        A step change inflates the overall standard deviation but barely touches
-        the average moving range, because only one of the n-1 ranges spans the
-        step.
-        """
+        """A step change blows up the SD but only one moving range crosses it."""
         rng = np.random.default_rng(0)
         x = np.concatenate([rng.normal(100, 5, 300), rng.normal(120, 5, 300)])
         assert moving_range_sigma(x) == pytest.approx(5.0, rel=0.10)
-        assert x.std(ddof=1) > 10  # overall SD is more than double the truth
+        assert x.std(ddof=1) > 10  # plain SD is more than double
 
     def test_requires_two_points(self) -> None:
         assert np.isnan(moving_range_sigma(np.array([1.0])))
@@ -84,14 +73,10 @@ class TestIndividualsLimits:
         x = np.concatenate([np.random.default_rng(2).normal(0, 1, 200), [40.0, -35.0]])
         lim = individuals_limits(x)
         assert lim.n_excluded >= 2
-        assert abs(lim.center) < 0.5  # outliers did not drag the centre
+        assert abs(lim.center) < 0.5
 
     def test_trimming_bias_is_small_and_conservative(self) -> None:
-        """Phase I trimming biases sigma slightly low, tightening limits.
-
-        Quantified rather than ignored: the bias must stay within a few percent,
-        otherwise the chart would over-alarm by construction.
-        """
+        """Trimming makes sigma a little low; make sure it's within 5%."""
         untrimmed, trimmed = [], []
         for s in range(150):
             x = np.random.default_rng(s).normal(0, 3, 400)
@@ -142,7 +127,7 @@ class TestNelsonRules:
         assert 8 in self._fired([1.5, -1.5] * 4)
 
     def test_rule_5_is_side_specific(self) -> None:
-        """Two points beyond 2 sigma on *opposite* sides must not fire rule 5."""
+        """Points beyond 2 sigma on opposite sides shouldn't trigger rule 5."""
         assert 5 not in self._fired([2.5, 0.1, -2.6])
 
     def test_degenerate_sigma_fires_nothing(self) -> None:

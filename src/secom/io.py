@@ -8,9 +8,8 @@ The raw distribution is two space-delimited text files with no header:
     1567 rows of ``<label> "<dd/mm/yyyy HH:MM:SS>"`` where the label is
     ``-1`` for an in-house line test pass and ``1`` for a fail.
 
-Sensors are unnamed in the source. We assign stable identifiers ``S001``..``S590``
-from the 1-based column position in ``secom.data`` so that any statement in this
-project can be traced back to a specific column of the published file.
+Sensors have no names in the source, so they're called S001..S590 by column
+position in secom.data.
 """
 
 from __future__ import annotations
@@ -64,9 +63,8 @@ def load_raw(raw_dir: str | Path) -> SecomData:
     FileNotFoundError
         If the raw files are absent; run ``scripts/00_fetch_data.py`` first.
     ValueError
-        If the two files disagree on row count, or the shape is not the
-        documented 1567 x 590. A silent shape change would invalidate every
-        sensor identifier in the project, so it is a hard error.
+        If the two files have different row counts, or the shape isn't
+        1567 x 590 (the sensor ids depend on it).
     """
     raw_dir = Path(raw_dir)
     data_path = raw_dir / "secom.data"

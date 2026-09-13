@@ -1,13 +1,7 @@
-"""Per-sensor data-quality audit and the retention decision it drives.
+"""Per-sensor data quality audit.
 
-The SECOM documentation advertises 590 features. It does not mention that a
-large fraction of those columns carry no usable information: some are frozen at
-a single value, and many are byte-for-byte duplicates of another column. Any
-analysis that treats 590 as the effective dimensionality is overstating both the
-information content and the severity of its own multiple-comparison problem.
-
-This module measures those defects rather than assuming them, and emits an
-auditable ledger: one row per raw sensor, with a disposition and the reason.
+A lot of the 590 SECOM columns are constant or exact copies of other columns.
+This finds them and gives every sensor a disposition (keep or why it was dropped).
 """
 
 from __future__ import annotations
@@ -20,11 +14,9 @@ from scipy import stats as sps
 
 from .stats import benjamini_hochberg
 
-#: Missingness above which a sensor is dropped rather than imputed.
-#: SECOM missingness is bimodal: 506 sensors sit at or below 3.3% and the next
-#: group starts at 16.6%, with the largest gap in the whole distribution between
-#: 17.4% and 45.6%. Any threshold in [0.175, 0.456] drops exactly the same 32
-#: sensors, so this choice is insensitive over a wide band.
+#: Sensors missing more than this are dropped instead of imputed.
+#: Nothing sits between 17.4% and 45.6% missing, so any cutoff in that range
+#: drops the same 32 sensors.
 MAX_MISSING_FRAC = 0.20
 
 #: Absolute Pearson r at or above which two surviving sensors are redundant.
@@ -40,26 +32,23 @@ DISPOSITIONS = (
 
 
 def _column_hash(col: np.ndarray) -> str:
-    """Hash a float column so that NaN positions participate in the identity."""
+    """Hash a column, NaN positions included."""
     sentinel = np.where(np.isnan(col), -9.87654321e30, col)
     return hashlib.blake2b(sentinel.tobytes(), digest_size=16).hexdigest()
 
 
 def _robust_outlier_frac(present: np.ndarray, k: float = 5.0) -> float:
-    """Fraction of observations beyond median +/- k * (1.4826 * MAD).
+    """Fraction of points beyond median +/- k * (1.4826 * MAD).
 
-    MAD-based rather than SD-based: with tails this heavy, an SD-based screen is
-    inflated by the very points it is meant to find.
+    Using MAD because the SD gets blown up by the outliers themselves.
     """
     if len(present) < 10:
         return np.nan
     med = np.median(present)
     mad = np.median(np.abs(present - med)) * 1.4826
     if mad == 0:
-        # More than half the observations are identical, so there is no scale to
-        # measure against. Returning 0.0 here would hide the opposite situation:
-        # a sensor pinned at one value except for a handful of excursions, where
-        # every differing point is unambiguously an outlier.
+        # over half the values are identical; count anything off the median
+        # as an outlier instead of returning 0
         return float(np.mean(present != med))
     return float(np.mean(np.abs(present - med) > k * mad))
 
@@ -71,22 +60,17 @@ def audit_sensors(
     max_missing_frac: float = MAX_MISSING_FRAC,
     near_duplicate_r: float = NEAR_DUPLICATE_R,
 ) -> pd.DataFrame:
-    """Profile every sensor and assign a retention disposition.
+    """Profile each sensor and give it one disposition.
 
-    The cascade is ordered and each sensor receives exactly one reason, so the
-    counts by disposition sum to the raw sensor count:
+    Checked in this order, first match wins:
 
-    1. ``drop_constant``       -- fewer than two distinct observed values.
-    2. ``drop_duplicate``      -- identical values *and* identical NaN pattern to
-       an earlier surviving sensor.
-    3. ``drop_sparse``         -- missing fraction above ``max_missing_frac``.
-    4. ``drop_near_duplicate`` -- absolute correlation at or above
-       ``near_duplicate_r`` against an earlier surviving sensor.
-    5. ``retain``              -- everything else.
+    1. drop_constant       - fewer than 2 distinct values
+    2. drop_duplicate      - same values and same NaN pattern as an earlier sensor
+    3. drop_sparse         - missing fraction > max_missing_frac
+    4. drop_near_duplicate - |r| >= near_duplicate_r with an earlier kept sensor
+    5. retain
 
-    Constants are removed first because a frozen column is trivially a duplicate
-    of every other frozen column, and attributing it to duplication would hide
-    the more specific defect.
+    Constants go first, otherwise they'd all be flagged as duplicates of each other.
     """
     values = frame[sensors]
     n_rows = len(values)
@@ -164,13 +148,10 @@ def audit_sensors(
 def missingness_vs_outcome(
     frame: pd.DataFrame, sensors: list[str], is_fail: np.ndarray
 ) -> pd.DataFrame:
-    """Test whether *whether a sensor reported* is associated with the outcome.
+    """Fisher test of whether a sensor being missing is related to the run failing.
 
-    Missingness is only safely imputable if it is not itself informative. If a
-    sensor tends to go missing on failing runs, imputation silently destroys
-    signal and the missingness should be carried as its own indicator instead.
-    Fisher's exact test is used because several sensors have very few missing
-    runs, where the chi-square approximation is unreliable.
+    If it is, imputing that sensor would throw the signal away. Fisher instead
+    of chi-square because some sensors only have a few missing values.
     """
     is_fail = np.asarray(is_fail, dtype=bool)
     rows = []
