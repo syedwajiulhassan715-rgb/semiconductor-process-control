@@ -1,4 +1,4 @@
-"""Command-line interface: ``secom fetch | run | stages | monitor``."""
+"""Command-line interface: ``secom fetch | run | stages | monitor | validate``."""
 
 from __future__ import annotations
 
@@ -20,9 +20,50 @@ def _root(args: argparse.Namespace) -> Path:
 
 
 def _cmd_fetch(args: argparse.Namespace) -> int:
-    from .fetch import fetch
+    from .fetch import fetch, fetch_tep
 
-    fetch(_root(args) / "data" / "raw")
+    raw = _root(args) / "data" / "raw"
+    if args.dataset == "tep":
+        fetch_tep(raw)
+    else:
+        fetch(raw)
+    return 0
+
+
+def _cmd_validate(args: argparse.Namespace) -> int:
+    from .tep_validation import (
+        TEPValidationConfig,
+        run_tep_validation,
+        write_figures,
+        write_results,
+    )
+
+    root = _root(args)
+    cfg = TEPValidationConfig()
+    overrides = {
+        k: v
+        for k, v in (("alpha", args.alpha), ("n_components", args.n_components))
+        if v is not None
+    }
+    if overrides:
+        cfg = dataclasses.replace(cfg, **overrides)
+    start = time.perf_counter()
+    try:
+        results, fig_data = run_tep_validation(root, cfg, with_secom=not args.no_secom)
+    except (FileNotFoundError, ValueError) as exc:
+        print(f"secom: {exc}", file=sys.stderr)
+        return 2
+    out = write_results(results, root / "reports" / "validation" / "tep_results.json")
+    print(f"wrote {out}")
+    if not args.no_figures:
+        figures_dir = args.figures_dir or root / "reports" / "figures"
+        for path in write_figures(results, fig_data, figures_dir, fmt=args.figure_format):
+            print(f"wrote {path}")
+    cmp_ = results["benchmark_comparison"]
+    print(
+        f"done in {time.perf_counter() - start:.1f}s: mean |detection - benchmark| "
+        f"T2 {cmp_['t2']['mean_abs_diff']:.3f}, SPE {cmp_['spe']['mean_abs_diff']:.3f}"
+    )
     return 0
 
 
@@ -122,7 +163,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sub = parser.add_subparsers(dest="command", required=True, metavar="COMMAND")
 
-    p_fetch = sub.add_parser("fetch", parents=[common], help="download SECOM into data/raw/")
+    p_fetch = sub.add_parser("fetch", parents=[common], help="download raw data into data/raw/")
+    p_fetch.add_argument(
+        "--dataset",
+        choices=("secom", "tep"),
+        default="secom",
+        help="secom (default) or tep, the Tennessee Eastman validation data (data/raw/tep/)",
+    )
     p_fetch.set_defaults(func=_cmd_fetch)
 
     p_run = sub.add_parser("run", parents=[common], help="run the analysis pipeline")
@@ -182,6 +229,28 @@ def build_parser() -> argparse.ArgumentParser:
     p_monitor.add_argument("--open", action="store_true", help="open the page in a browser")
     p_monitor.add_argument("-v", "--verbose", action="store_true", help="log every request")
     p_monitor.set_defaults(func=_cmd_monitor)
+
+    p_validate = sub.add_parser(
+        "validate",
+        parents=[common],
+        help="validate the monitoring code on a benchmark with known faults",
+    )
+    p_validate.add_argument("benchmark", choices=("tep",), help="tep: Tennessee Eastman")
+    p_validate.add_argument("--alpha", type=float, default=None, help="per-chart alpha")
+    p_validate.add_argument(
+        "--n-components", type=int, default=None, help="PCA components (default 11)"
+    )
+    p_validate.add_argument(
+        "--no-secom", action="store_true", help="skip the SECOM calibration comparison"
+    )
+    p_validate.add_argument("--no-figures", action="store_true", help="skip writing figures")
+    p_validate.add_argument(
+        "--figure-format", choices=FIGURE_FORMATS, default="png", help="png (default) or svg"
+    )
+    p_validate.add_argument(
+        "--figures-dir", type=Path, default=None, help="default: reports/figures/"
+    )
+    p_validate.set_defaults(func=_cmd_validate)
     return parser
 
 

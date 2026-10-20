@@ -42,14 +42,17 @@ jobs:
         run: pip install -e ".[dev]"
 
       # The real-data tests skip without data/raw/, so fetch it once and cache it.
-      - name: Cache SECOM raw data
+      # data/raw/tep/ holds the Tennessee Eastman validation files.
+      - name: Cache raw data
         uses: actions/cache@v4
         with:
           path: data/raw
-          key: secom-raw-${{ hashFiles('src/secom/fetch.py') }}
+          key: raw-data-${{ hashFiles('src/secom/fetch.py') }}
 
-      - name: Fetch SECOM
-        run: secom fetch
+      - name: Fetch SECOM and Tennessee Eastman
+        run: |
+          secom fetch
+          secom fetch --dataset tep
 
       - name: Run tests with coverage
         run: pytest -q --cov=secom --cov-report=term --cov-report=xml
@@ -66,6 +69,7 @@ jobs:
         run: |
           secom stages
           secom run --no-figures
+          secom validate tep --no-figures
 
       - name: Upload coverage report
         if: matrix.python-version == '3.12'
