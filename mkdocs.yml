@@ -1,0 +1,117 @@
+site_name: Semiconductor Process Control
+site_description: >-
+  Statistical process control and root-cause screening on 1,567 production runs
+  of the UCI SECOM fab dataset.
+site_url: https://syedwajiulhassan715-rgb.github.io/semiconductor-process-control/
+repo_url: https://github.com/syedwajiulhassan715-rgb/semiconductor-process-control
+repo_name: semiconductor-process-control
+edit_uri: blob/main/docs/
+
+docs_dir: docs
+exclude_docs: |
+  _gen/
+  _integrator_notes.md
+
+strict: true
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+  anchors: warn
+
+theme:
+  name: material
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.indexes
+    - navigation.footer
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+    - toc.follow
+
+extra_css:
+  - stylesheets/extra.css
+
+plugins:
+  - search
+  - gen-files:
+      scripts:
+        - docs/_gen/gen_pages.py
+  - literate-nav:
+      nav_file: SUMMARY.md
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: numpy
+            docstring_section_style: table
+            members_order: source
+            filters: ["!^_"]
+            show_source: false
+            show_root_heading: true
+            show_root_full_path: true
+            show_root_toc_entry: false
+            show_signature_annotations: true
+            separate_signature: true
+            signature_crossrefs: true
+            merge_init_into_class: true
+            show_if_no_docstring: false
+            heading_level: 1
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - footnotes
+  - toc:
+      permalink: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+
+nav:
+  - Home: index.md
+  - Getting started: getting-started.md
+  - Findings:
+      - Engineering report: report.md
+      - Decision log: decisions.md
+  - Guides:
+      - Configuration: configuration.md
+      - Pipeline architecture: architecture.md
+      - Replay monitor: monitor.md
+      - Power BI: powerbi.md
+  - API reference: reference/

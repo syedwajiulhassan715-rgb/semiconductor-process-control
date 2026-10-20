@@ -14,3 +14,7 @@ data/processed/_*.json
 .coverage
 coverage.xml
 htmlcov/
+# docs site build output and local docs environments
+site/
+.site-build/
+.venv-*/

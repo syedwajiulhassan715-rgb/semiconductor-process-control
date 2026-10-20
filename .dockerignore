@@ -1,0 +1,28 @@
+# Only pyproject.toml, README.md, src/, config/, docker/ and the committed
+# outputs in data/ and reports/ are needed in the build context.
+.git
+.github
+.claude
+.venv*
+venv
+**/__pycache__
+**/*.pyc
+*.egg-info
+build
+dist
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+coverage.xml
+htmlcov
+site
+.site-build
+docs
+tests
+scripts
+powerbi
+data/raw
+reports/sections
+Dockerfile
+.dockerignore
