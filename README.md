@@ -7,9 +7,9 @@
 <p>
 <a href="https://github.com/syedwajiulhassan715-rgb/semiconductor-process-control/actions/workflows/ci.yml"><img src="https://github.com/syedwajiulhassan715-rgb/semiconductor-process-control/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 <img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-3776AB?logo=python&logoColor=white" alt="Python 3.11 | 3.12 | 3.13">
-<img src="https://img.shields.io/badge/tests-87-2E7D4F" alt="87 tests">
+<img src="https://img.shields.io/badge/tests-115-2E7D4F" alt="115 tests">
 <a href="https://docs.astral.sh/ruff/"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Ruff"></a>
-<img src="https://img.shields.io/badge/pipeline-deterministic%20%C2%B7%2023s-2E7D4F" alt="Deterministic, 23 seconds">
+<img src="https://img.shields.io/badge/pipeline-deterministic%20%C2%B7%20~20s-2E7D4F" alt="Deterministic, about 20 seconds">
 <img src="https://img.shields.io/badge/dataset-UCI%20SECOM-6E7B8B" alt="UCI SECOM">
 <img src="https://img.shields.io/badge/BI-Power%20BI%20star%20schema-C43E1C" alt="Power BI star schema">
 </p>
@@ -160,16 +160,18 @@ the forward number is not one unlucky cut: mean AUC 0.641 (sd 0.106).
 
 ## Why the numbers can be trusted
 
-**Every figure is regenerated, never remembered.** `scripts/run_analysis.py`
-writes every quoted statistic to `reports/results.json`, so each claim in the
-write-up traces to a computed value.
+**Every figure is regenerated, never remembered.** `secom run` writes every
+quoted statistic to `reports/results.json`, so each claim in the write-up traces
+to a computed value. Every threshold behind those numbers lives in one file,
+[`config/default.yaml`](config/default.yaml), rather than scattered through the
+code.
 
 **The pipeline is deterministic.** One seed (`20080719`) covers model fits, CV
 splits, the CUSUM ARL simulation, and the permutation test. A clean re-run
-reproduces every committed output byte-for-byte in **~23 s**.
+reproduces every committed output byte-for-byte in **about 20 s**.
 
 **The choices that could quietly invalidate the result are pinned by tests** —
-87 of them:
+115 of them:
 
 | Risk | Guard |
 |---|---|
@@ -194,33 +196,66 @@ cut at 0.99 / 0.9999 moves retention 412 → 405 / 418 and changes no conclusion
 Python ≥ 3.11.
 
 ```bash
-pip install -r requirements.txt
-python scripts/00_fetch_data.py     # downloads SECOM into data/raw/
-python scripts/run_analysis.py      # ~23 s -> results.json, figures, Power BI CSVs
-pytest -q                           # 87 tests
+pip install -e .
+secom fetch          # downloads SECOM into data/raw/
+secom run            # ~20 s -> results.json, figures, Power BI CSVs
+secom stages         # list the pipeline stages in order
 ```
 
-`data/raw/` is gitignored; the fetch script is its only source, and it skips
-files already present. Without it, the three real-data tests skip and the
-remaining 84 still run.
+Run from the repository root (or pass `--root`). `data/raw/` is gitignored;
+`secom fetch` is its only source, and it skips files already present. Without
+the package installed, `python scripts/00_fetch_data.py` and
+`python scripts/run_analysis.py` do the same thing; the latter accepts every
+`secom run` option.
+
+### Running parts of the analysis
+
+```bash
+secom run --only cusum           # cusum plus the stages it depends on
+secom run --no-figures           # everything except figure rendering
+secom run --figure-format svg    # pure-Python backend, no compiled Agg needed
+secom run --config my.yaml       # rerun under different thresholds
+```
+
+`secom run` reads [`config/default.yaml`](config/default.yaml) when it exists.
+A custom file only needs the keys it changes, and an unknown key or a wrong type
+is an error rather than a silent fallback. Only the `export` stage writes
+`results.json` and the CSVs, so an `--only` run that stops short of it leaves the
+committed outputs untouched.
 
 ### Development
 
 ```bash
-pip install -e ".[dev]"     # editable install + pytest + ruff
+pip install -e ".[dev]"     # pytest, pytest-cov, ruff, mypy, pre-commit
+pre-commit install          # ruff + hygiene hooks on every commit
 ruff check . && ruff format --check .
-pytest -q
+mypy                        # type-checks src/secom
+pytest -q --cov=secom       # 115 tests
 ```
 
-The editable install also makes `secom` importable outside the test suite, from
-a notebook for example. CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml))
-runs lint plus the full suite, including the real-data tests, on Python 3.11,
-3.12 and 3.13.
+Without `data/raw/`, the four real-data tests skip and the remaining 111 still
+run. CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs lint, mypy,
+the full suite with coverage, and a `secom run` smoke test on Python 3.11, 3.12
+and 3.13.
+
+**Adding an analysis stage** is one module in `src/secom/pipeline/stages/` plus
+one line in `STAGES`. The contract (artifacts each stage reads and writes,
+config sections, figures) is in the docstring of
+[`src/secom/pipeline/__init__.py`](src/secom/pipeline/__init__.py); see
+decision **D25**.
 
 ## Layout
 
 ```
+config/
+  default.yaml   every analysis constant, with its decision number
 src/secom/
+  cli.py      `secom` command: fetch / run / stages
+  config.py   typed, validated config loader (frozen dataclasses)
+  pipeline/   staged pipeline: context, registry, plotting style
+    stages/   load, audit, clean, yield_charts, cusum, sensor_screen,
+              model, figures, export
+  fetch.py    dataset download
   io.py       raw load; hard-errors if the matrix is not 1567x590
   audit.py    sensor disposition, missingness-vs-outcome testing
   clean.py    causal imputation (trailing rolling-median cascade)
@@ -230,13 +265,13 @@ src/secom/
   model.py    shuffled vs forward-chronological evaluation
   export.py   Power BI star schema
 scripts/
-  00_fetch_data.py   dataset download
-  run_analysis.py    end-to-end: raw in, star schema and figures out
+  00_fetch_data.py   wrapper for `secom fetch`
+  run_analysis.py    wrapper for `secom run`
 powerbi/
   README.md          model setup: load, relationships, measures, validation
   measures.dax       control limits, baselines, interactive triage
   queries.pq         explicit Power Query types (locale + null-inference traps)
-tests/               87 tests across spc / stats / audit / clean
+tests/               115 tests across spc / stats / audit / clean / pipeline
 reports/
   ENGINEERING_REPORT.md   the write-up
   results.json            every quoted number
