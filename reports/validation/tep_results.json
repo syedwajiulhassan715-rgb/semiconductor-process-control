@@ -1,0 +1,1498 @@
+{
+  "dataset": {
+    "source": "Braatz TEP training/testing files (Chiang, Russell & Braatz, 2001)",
+    "mirror": "https://github.com/camaramm/tennessee-eastman-profBraatz",
+    "n_train": 500,
+    "n_test": 960,
+    "n_variables": 52,
+    "fault_onset_sample": 160,
+    "sample_minutes": 3.0,
+    "sha256": {
+      "d00.dat": "4c3c0b11eefacf93e5d2529e2866d7a625e37aa9153d0f95fae17a6c9e560deb",
+      "d00_te.dat": "57d56da4199e3d73582855d810be1d13d931386fd728bf1694798c7b0a03678c",
+      "d01_te.dat": "e7e6992fb39664e739fccbc001a1c5d5f7cb21829544f734ca3f282c26f680e5",
+      "d02_te.dat": "a34bd9c3693fa96bd3ee533fb7fbe29a9d226a4e3250b585ef1308e1136dbfb0",
+      "d03_te.dat": "b7bf6f2ed7cff0a5577898b009edd252b9bdf6ee9ff7dbeacf9af9aa4c6abace",
+      "d04_te.dat": "1ccb488dd5feac11aad54623451168abef066229e685872597897800363916f9",
+      "d05_te.dat": "1def7258a2865aeead699d52c8cf926fbf34c1467aaf298121987ab858fd0888",
+      "d06_te.dat": "8a3adc7121eaa9b9300c27f9c57a8ab356315401cb964310a4a8244dd34bf79d",
+      "d07_te.dat": "e01b7c81daf9fccc4495cbde5658296918276b3c078044893f6e945dd91d3446",
+      "d08_te.dat": "c0637f02f23b79890b43cfee9604818ad6d7f81532223d76acf1da0d6e2a2cc1",
+      "d09_te.dat": "513df6c3a4fd48e0eaddb0002cd8cdab3a78a5c83c47883bb52d2dc6c2472428",
+      "d10_te.dat": "3a278be79d8d111fc60be3cfb4f961c28e2dc632f17eb519886aa0f95864ffc6",
+      "d11_te.dat": "6d60a4c932d918e1ab26ae5d16320936a665f3aad3f05482d23f5c4550b9f29a",
+      "d12_te.dat": "2180fcecb01d1b110b429ba2969d6b18dcc625599e3640e54f69afa32dccbe50",
+      "d13_te.dat": "2e34e0c427d6e41d77d6cae76550b7e95004f9f13bc093278ecf5c282a1c9f03",
+      "d14_te.dat": "e8976d056c0769cebbcec3bcba89d2468040ccae7acbea55ebc3b2e56b217396",
+      "d15_te.dat": "a7242b956837bec8ca7f224d01805247f2aea6ea868eaa064e068b5c0761b1e5",
+      "d16_te.dat": "8381d7371aac49b498e7bf93149b77a0a6bbeffe73520881dcbe8ae96277244d",
+      "d17_te.dat": "27d2d72052064e3cbb7a45df8073f15bb83b77403f532616e73c8869b043e7c9",
+      "d18_te.dat": "1db5b93a7daa58ed1b641845b58ad818546ced7f3de866c086da18a7ebef5041",
+      "d19_te.dat": "c24dd77f787f89347273addc8a453d79f0b99edd64d43be11a5e0907bd515c5f",
+      "d20_te.dat": "e54035eda95311f13dd095f87607d97a89b7541afa2a3f68af098f33a5e2e6e5",
+      "d21_te.dat": "b6823aa09638cd59cb168bc24f991b6d4d557d8aea62b0b2a87ee67c21ba5a83",
+      "LICENSE": "70a00a943dd2ef2a1749e694fca4340b588a9c71764e9860d4854e1362a8030d"
+    }
+  },
+  "settings": {
+    "alpha": 0.01,
+    "n_components": 11,
+    "sensitivity_components": [
+      5,
+      9,
+      11,
+      15,
+      20
+    ],
+    "cv_folds": 5,
+    "delay_run_length": 6,
+    "secom_variance_target": 0.8
+  },
+  "model": {
+    "n_components": 11,
+    "explained": 0.541546300946092,
+    "kaiser_components": 18,
+    "variance_rule_components": 24,
+    "t2_limit_F": 25.690202412564012,
+    "t2_limit_phase1_beta": 24.38537832896582,
+    "spe_limit": 41.687624608494964,
+    "spe_limit_method": "jackson_mudholkar",
+    "cv_t2_limit": 21.98247529249251,
+    "cv_spe_limit": 47.25308947169299
+  },
+  "false_alarms": {
+    "d00_te": {
+      "textbook": {
+        "t2": 0.016666666666666666,
+        "spe": 0.07083333333333333,
+        "univariate": 0.03958333333333333,
+        "either_pca": 0.0875
+      },
+      "cv": {
+        "t2": 0.046875,
+        "spe": 0.021875,
+        "univariate": 0.03958333333333333,
+        "either_pca": 0.06666666666666667
+      }
+    },
+    "pre_fault_pooled": {
+      "textbook": {
+        "t2": 0.010416666666666666,
+        "spe": 0.05386904761904762,
+        "univariate": 0.022916666666666665
+      },
+      "cv": {
+        "t2": 0.030654761904761903,
+        "spe": 0.012797619047619047,
+        "univariate": 0.022916666666666665
+      }
+    }
+  },
+  "faults": [
+    {
+      "fault": 1,
+      "description": "A/C feed ratio, B composition constant (stream 4): step",
+      "textbook": {
+        "t2": {
+          "detection_rate": 0.9925,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 6,
+          "delay_first_minutes": 18.0,
+          "delay_persistent_samples": 6,
+          "delay_persistent_minutes": 18.0
+        },
+        "spe": {
+          "detection_rate": 0.9975,
+          "false_alarm_rate_pre_fault": 0.075,
+          "delay_first_samples": 2,
+          "delay_first_minutes": 6.0,
+          "delay_persistent_samples": 2,
+          "delay_persistent_minutes": 6.0
+        },
+        "univariate": {
+          "detection_rate": 0.9975,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 2,
+          "delay_first_minutes": 6.0,
+          "delay_persistent_samples": 2,
+          "delay_persistent_minutes": 6.0
+        }
+      },
+      "cv": {
+        "t2": {
+          "detection_rate": 0.9925,
+          "false_alarm_rate_pre_fault": 0.025,
+          "delay_first_samples": 6,
+          "delay_first_minutes": 18.0,
+          "delay_persistent_samples": 6,
+          "delay_persistent_minutes": 18.0
+        },
+        "spe": {
+          "detection_rate": 0.9975,
+          "false_alarm_rate_pre_fault": 0.0125,
+          "delay_first_samples": 2,
+          "delay_first_minutes": 6.0,
+          "delay_persistent_samples": 2,
+          "delay_persistent_minutes": 6.0
+        },
+        "univariate": {
+          "detection_rate": 0.9975,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 2,
+          "delay_first_minutes": 6.0,
+          "delay_persistent_samples": 2,
+          "delay_persistent_minutes": 6.0
+        }
+      },
+      "benchmark_pca": {
+        "t2_detection_rate": 0.992,
+        "spe_detection_rate": 0.997
+      }
+    },
+    {
+      "fault": 2,
+      "description": "B composition, A/C ratio constant (stream 4): step",
+      "textbook": {
+        "t2": {
+          "detection_rate": 0.98,
+          "false_alarm_rate_pre_fault": 0.0125,
+          "delay_first_samples": 16,
+          "delay_first_minutes": 48.0,
+          "delay_persistent_samples": 16,
+          "delay_persistent_minutes": 48.0
+        },
+        "spe": {
+          "detection_rate": 0.98875,
+          "false_alarm_rate_pre_fault": 0.04375,
+          "delay_first_samples": 7,
+          "delay_first_minutes": 21.0,
+          "delay_persistent_samples": 10,
+          "delay_persistent_minutes": 30.0
+        },
+        "univariate": {
+          "detection_rate": 0.9875,
+          "false_alarm_rate_pre_fault": 0.04375,
+          "delay_first_samples": 10,
+          "delay_first_minutes": 30.0,
+          "delay_persistent_samples": 10,
+          "delay_persistent_minutes": 30.0
+        }
+      },
+      "cv": {
+        "t2": {
+          "detection_rate": 0.9825,
+          "false_alarm_rate_pre_fault": 0.0125,
+          "delay_first_samples": 14,
+          "delay_first_minutes": 42.0,
+          "delay_persistent_samples": 14,
+          "delay_persistent_minutes": 42.0
+        },
+        "spe": {
+          "detection_rate": 0.98625,
+          "false_alarm_rate_pre_fault": 0.0125,
+          "delay_first_samples": 11,
+          "delay_first_minutes": 33.0,
+          "delay_persistent_samples": 11,
+          "delay_persistent_minutes": 33.0
+        },
+        "univariate": {
+          "detection_rate": 0.9875,
+          "false_alarm_rate_pre_fault": 0.04375,
+          "delay_first_samples": 10,
+          "delay_first_minutes": 30.0,
+          "delay_persistent_samples": 10,
+          "delay_persistent_minutes": 30.0
+        }
+      },
+      "benchmark_pca": {
+        "t2_detection_rate": 0.98,
+        "spe_detection_rate": 0.986
+      }
+    },
+    {
+      "fault": 3,
+      "description": "D feed temperature (stream 2): step",
+      "textbook": {
+        "t2": {
+          "detection_rate": 0.02625,
+          "false_alarm_rate_pre_fault": 0.0125,
+          "delay_first_samples": 40,
+          "delay_first_minutes": 120.0,
+          "delay_persistent_samples": null,
+          "delay_persistent_minutes": null
+        },
+        "spe": {
+          "detection_rate": 0.09625,
+          "false_alarm_rate_pre_fault": 0.075,
+          "delay_first_samples": 9,
+          "delay_first_minutes": 27.0,
+          "delay_persistent_samples": null,
+          "delay_persistent_minutes": null
+        },
+        "univariate": {
+          "detection_rate": 0.04875,
+          "false_alarm_rate_pre_fault": 0.025,
+          "delay_first_samples": 50,
+          "delay_first_minutes": 150.0,
+          "delay_persistent_samples": 356,
+          "delay_persistent_minutes": 1068.0
+        }
+      },
+      "cv": {
+        "t2": {
+          "detection_rate": 0.09375,
+          "false_alarm_rate_pre_fault": 0.0375,
+          "delay_first_samples": 14,
+          "delay_first_minutes": 42.0,
+          "delay_persistent_samples": 82,
+          "delay_persistent_minutes": 246.0
+        },
+        "spe": {
+          "detection_rate": 0.0275,
+          "false_alarm_rate_pre_fault": 0.03125,
+          "delay_first_samples": 20,
+          "delay_first_minutes": 60.0,
+          "delay_persistent_samples": null,
+          "delay_persistent_minutes": null
+        },
+        "univariate": {
+          "detection_rate": 0.04875,
+          "false_alarm_rate_pre_fault": 0.025,
+          "delay_first_samples": 50,
+          "delay_first_minutes": 150.0,
+          "delay_persistent_samples": 356,
+          "delay_persistent_minutes": 1068.0
+        }
+      },
+      "benchmark_pca": {
+        "t2_detection_rate": 0.0020000000000000018,
+        "spe_detection_rate": 0.009000000000000008
+      }
+    },
+    {
+      "fault": 4,
+      "description": "Reactor cooling water inlet temperature: step",
+      "textbook": {
+        "t2": {
+          "detection_rate": 0.0875,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": null,
+          "delay_persistent_minutes": null
+        },
+        "spe": {
+          "detection_rate": 0.99625,
+          "false_alarm_rate_pre_fault": 0.09375,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 0,
+          "delay_persistent_minutes": 0.0
+        },
+        "univariate": {
+          "detection_rate": 1.0,
+          "false_alarm_rate_pre_fault": 0.01875,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 0,
+          "delay_persistent_minutes": 0.0
+        }
+      },
+      "cv": {
+        "t2": {
+          "detection_rate": 0.18,
+          "false_alarm_rate_pre_fault": 0.0125,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 356,
+          "delay_persistent_minutes": 1068.0
+        },
+        "spe": {
+          "detection_rate": 0.9875,
+          "false_alarm_rate_pre_fault": 0.025,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 2,
+          "delay_persistent_minutes": 6.0
+        },
+        "univariate": {
+          "detection_rate": 1.0,
+          "false_alarm_rate_pre_fault": 0.01875,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 0,
+          "delay_persistent_minutes": 0.0
+        }
+      },
+      "benchmark_pca": {
+        "t2_detection_rate": 0.04400000000000004,
+        "spe_detection_rate": 0.962
+      }
+    },
+    {
+      "fault": 5,
+      "description": "Condenser cooling water inlet temperature: step",
+      "textbook": {
+        "t2": {
+          "detection_rate": 0.24625,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 12,
+          "delay_persistent_minutes": 36.0
+        },
+        "spe": {
+          "detection_rate": 0.34875,
+          "false_alarm_rate_pre_fault": 0.09375,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 0,
+          "delay_persistent_minutes": 0.0
+        },
+        "univariate": {
+          "detection_rate": 0.30375,
+          "false_alarm_rate_pre_fault": 0.01875,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 6,
+          "delay_persistent_minutes": 18.0
+        }
+      },
+      "cv": {
+        "t2": {
+          "detection_rate": 0.28625,
+          "false_alarm_rate_pre_fault": 0.0125,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 12,
+          "delay_persistent_minutes": 36.0
+        },
+        "spe": {
+          "detection_rate": 0.275,
+          "false_alarm_rate_pre_fault": 0.025,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 0,
+          "delay_persistent_minutes": 0.0
+        },
+        "univariate": {
+          "detection_rate": 0.30375,
+          "false_alarm_rate_pre_fault": 0.01875,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 6,
+          "delay_persistent_minutes": 18.0
+        }
+      },
+      "benchmark_pca": {
+        "t2_detection_rate": 0.22499999999999998,
+        "spe_detection_rate": 0.254
+      }
+    },
+    {
+      "fault": 6,
+      "description": "A feed loss (stream 1): step",
+      "textbook": {
+        "t2": {
+          "detection_rate": 0.9925,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 6,
+          "delay_first_minutes": 18.0,
+          "delay_persistent_samples": 6,
+          "delay_persistent_minutes": 18.0
+        },
+        "spe": {
+          "detection_rate": 1.0,
+          "false_alarm_rate_pre_fault": 0.01875,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 0,
+          "delay_persistent_minutes": 0.0
+        },
+        "univariate": {
+          "detection_rate": 1.0,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 0,
+          "delay_persistent_minutes": 0.0
+        }
+      },
+      "cv": {
+        "t2": {
+          "detection_rate": 0.9925,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 6,
+          "delay_first_minutes": 18.0,
+          "delay_persistent_samples": 6,
+          "delay_persistent_minutes": 18.0
+        },
+        "spe": {
+          "detection_rate": 1.0,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 0,
+          "delay_persistent_minutes": 0.0
+        },
+        "univariate": {
+          "detection_rate": 1.0,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 0,
+          "delay_persistent_minutes": 0.0
+        }
+      },
+      "benchmark_pca": {
+        "t2_detection_rate": 0.989,
+        "spe_detection_rate": 1.0
+      }
+    },
+    {
+      "fault": 7,
+      "description": "C header pressure loss, reduced availability (stream 4): step",
+      "textbook": {
+        "t2": {
+          "detection_rate": 0.96,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 0,
+          "delay_persistent_minutes": 0.0
+        },
+        "spe": {
+          "detection_rate": 1.0,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 0,
+          "delay_persistent_minutes": 0.0
+        },
+        "univariate": {
+          "detection_rate": 1.0,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 0,
+          "delay_persistent_minutes": 0.0
+        }
+      },
+      "cv": {
+        "t2": {
+          "detection_rate": 0.9825,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 0,
+          "delay_persistent_minutes": 0.0
+        },
+        "spe": {
+          "detection_rate": 1.0,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 0,
+          "delay_persistent_minutes": 0.0
+        },
+        "univariate": {
+          "detection_rate": 1.0,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 0,
+          "delay_persistent_minutes": 0.0
+        }
+      },
+      "benchmark_pca": {
+        "t2_detection_rate": 0.915,
+        "spe_detection_rate": 1.0
+      }
+    },
+    {
+      "fault": 8,
+      "description": "A, B, C feed composition (stream 4): random variation",
+      "textbook": {
+        "t2": {
+          "detection_rate": 0.97,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 22,
+          "delay_first_minutes": 66.0,
+          "delay_persistent_samples": 22,
+          "delay_persistent_minutes": 66.0
+        },
+        "spe": {
+          "detection_rate": 0.98,
+          "false_alarm_rate_pre_fault": 0.08125,
+          "delay_first_samples": 15,
+          "delay_first_minutes": 45.0,
+          "delay_persistent_samples": 17,
+          "delay_persistent_minutes": 51.0
+        },
+        "univariate": {
+          "detection_rate": 0.98875,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 7,
+          "delay_first_minutes": 21.0,
+          "delay_persistent_samples": 7,
+          "delay_persistent_minutes": 21.0
+        }
+      },
+      "cv": {
+        "t2": {
+          "detection_rate": 0.9775,
+          "false_alarm_rate_pre_fault": 0.01875,
+          "delay_first_samples": 9,
+          "delay_first_minutes": 27.0,
+          "delay_persistent_samples": 22,
+          "delay_persistent_minutes": 66.0
+        },
+        "spe": {
+          "detection_rate": 0.97625,
+          "false_alarm_rate_pre_fault": 0.025,
+          "delay_first_samples": 19,
+          "delay_first_minutes": 57.0,
+          "delay_persistent_samples": 19,
+          "delay_persistent_minutes": 57.0
+        },
+        "univariate": {
+          "detection_rate": 0.98875,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 7,
+          "delay_first_minutes": 21.0,
+          "delay_persistent_samples": 7,
+          "delay_persistent_minutes": 21.0
+        }
+      },
+      "benchmark_pca": {
+        "t2_detection_rate": 0.966,
+        "spe_detection_rate": 0.976
+      }
+    },
+    {
+      "fault": 9,
+      "description": "D feed temperature (stream 2): random variation",
+      "textbook": {
+        "t2": {
+          "detection_rate": 0.02875,
+          "false_alarm_rate_pre_fault": 0.05625,
+          "delay_first_samples": 2,
+          "delay_first_minutes": 6.0,
+          "delay_persistent_samples": null,
+          "delay_persistent_minutes": null
+        },
+        "spe": {
+          "detection_rate": 0.08125,
+          "false_alarm_rate_pre_fault": 0.05625,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": null,
+          "delay_persistent_minutes": null
+        },
+        "univariate": {
+          "detection_rate": 0.0575,
+          "false_alarm_rate_pre_fault": 0.13125,
+          "delay_first_samples": 5,
+          "delay_first_minutes": 15.0,
+          "delay_persistent_samples": null,
+          "delay_persistent_minutes": null
+        }
+      },
+      "cv": {
+        "t2": {
+          "detection_rate": 0.065,
+          "false_alarm_rate_pre_fault": 0.175,
+          "delay_first_samples": 2,
+          "delay_first_minutes": 6.0,
+          "delay_persistent_samples": 4,
+          "delay_persistent_minutes": 12.0
+        },
+        "spe": {
+          "detection_rate": 0.04,
+          "false_alarm_rate_pre_fault": 0.025,
+          "delay_first_samples": 2,
+          "delay_first_minutes": 6.0,
+          "delay_persistent_samples": null,
+          "delay_persistent_minutes": null
+        },
+        "univariate": {
+          "detection_rate": 0.0575,
+          "false_alarm_rate_pre_fault": 0.13125,
+          "delay_first_samples": 5,
+          "delay_first_minutes": 15.0,
+          "delay_persistent_samples": null,
+          "delay_persistent_minutes": null
+        }
+      },
+      "benchmark_pca": {
+        "t2_detection_rate": 0.019000000000000017,
+        "spe_detection_rate": 0.019000000000000017
+      }
+    },
+    {
+      "fault": 10,
+      "description": "C feed temperature (stream 4): random variation",
+      "textbook": {
+        "t2": {
+          "detection_rate": 0.40125,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 22,
+          "delay_first_minutes": 66.0,
+          "delay_persistent_samples": 70,
+          "delay_persistent_minutes": 210.0
+        },
+        "spe": {
+          "detection_rate": 0.5625,
+          "false_alarm_rate_pre_fault": 0.05625,
+          "delay_first_samples": 2,
+          "delay_first_minutes": 6.0,
+          "delay_persistent_samples": 47,
+          "delay_persistent_minutes": 141.0
+        },
+        "univariate": {
+          "detection_rate": 0.57,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 27,
+          "delay_first_minutes": 81.0,
+          "delay_persistent_samples": 30,
+          "delay_persistent_minutes": 90.0
+        }
+      },
+      "cv": {
+        "t2": {
+          "detection_rate": 0.47875,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 7,
+          "delay_first_minutes": 21.0,
+          "delay_persistent_samples": 69,
+          "delay_persistent_minutes": 207.0
+        },
+        "spe": {
+          "detection_rate": 0.44125,
+          "false_alarm_rate_pre_fault": 0.01875,
+          "delay_first_samples": 26,
+          "delay_first_minutes": 78.0,
+          "delay_persistent_samples": 47,
+          "delay_persistent_minutes": 141.0
+        },
+        "univariate": {
+          "detection_rate": 0.57,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 27,
+          "delay_first_minutes": 81.0,
+          "delay_persistent_samples": 30,
+          "delay_persistent_minutes": 90.0
+        }
+      },
+      "benchmark_pca": {
+        "t2_detection_rate": 0.33399999999999996,
+        "spe_detection_rate": 0.34099999999999997
+      }
+    },
+    {
+      "fault": 11,
+      "description": "Reactor cooling water inlet temperature: random variation",
+      "textbook": {
+        "t2": {
+          "detection_rate": 0.2825,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 6,
+          "delay_first_minutes": 18.0,
+          "delay_persistent_samples": 193,
+          "delay_persistent_minutes": 579.0
+        },
+        "spe": {
+          "detection_rate": 0.77,
+          "false_alarm_rate_pre_fault": 0.05,
+          "delay_first_samples": 5,
+          "delay_first_minutes": 15.0,
+          "delay_persistent_samples": 9,
+          "delay_persistent_minutes": 27.0
+        },
+        "univariate": {
+          "detection_rate": 0.76875,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 5,
+          "delay_first_minutes": 15.0,
+          "delay_persistent_samples": 5,
+          "delay_persistent_minutes": 15.0
+        }
+      },
+      "cv": {
+        "t2": {
+          "detection_rate": 0.3825,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 6,
+          "delay_first_minutes": 18.0,
+          "delay_persistent_samples": 192,
+          "delay_persistent_minutes": 576.0
+        },
+        "spe": {
+          "detection_rate": 0.7,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 6,
+          "delay_first_minutes": 18.0,
+          "delay_persistent_samples": 10,
+          "delay_persistent_minutes": 30.0
+        },
+        "univariate": {
+          "detection_rate": 0.76875,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 5,
+          "delay_first_minutes": 15.0,
+          "delay_persistent_samples": 5,
+          "delay_persistent_minutes": 15.0
+        }
+      },
+      "benchmark_pca": {
+        "t2_detection_rate": 0.20599999999999996,
+        "spe_detection_rate": 0.644
+      }
+    },
+    {
+      "fault": 12,
+      "description": "Condenser cooling water inlet temperature: random variation",
+      "textbook": {
+        "t2": {
+          "detection_rate": 0.97375,
+          "false_alarm_rate_pre_fault": 0.0125,
+          "delay_first_samples": 2,
+          "delay_first_minutes": 6.0,
+          "delay_persistent_samples": 21,
+          "delay_persistent_minutes": 63.0
+        },
+        "spe": {
+          "detection_rate": 0.98625,
+          "false_alarm_rate_pre_fault": 0.0375,
+          "delay_first_samples": 2,
+          "delay_first_minutes": 6.0,
+          "delay_persistent_samples": 6,
+          "delay_persistent_minutes": 18.0
+        },
+        "univariate": {
+          "detection_rate": 0.98875,
+          "false_alarm_rate_pre_fault": 0.03125,
+          "delay_first_samples": 2,
+          "delay_first_minutes": 6.0,
+          "delay_persistent_samples": 6,
+          "delay_persistent_minutes": 18.0
+        }
+      },
+      "cv": {
+        "t2": {
+          "detection_rate": 0.9825,
+          "false_alarm_rate_pre_fault": 0.01875,
+          "delay_first_samples": 2,
+          "delay_first_minutes": 6.0,
+          "delay_persistent_samples": 21,
+          "delay_persistent_minutes": 63.0
+        },
+        "spe": {
+          "detection_rate": 0.97875,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 2,
+          "delay_first_minutes": 6.0,
+          "delay_persistent_samples": 6,
+          "delay_persistent_minutes": 18.0
+        },
+        "univariate": {
+          "detection_rate": 0.98875,
+          "false_alarm_rate_pre_fault": 0.03125,
+          "delay_first_samples": 2,
+          "delay_first_minutes": 6.0,
+          "delay_persistent_samples": 6,
+          "delay_persistent_minutes": 18.0
+        }
+      },
+      "benchmark_pca": {
+        "t2_detection_rate": 0.971,
+        "spe_detection_rate": 0.975
+      }
+    },
+    {
+      "fault": 13,
+      "description": "Reaction kinetics: slow drift",
+      "textbook": {
+        "t2": {
+          "detection_rate": 0.94,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 48,
+          "delay_first_minutes": 144.0,
+          "delay_persistent_samples": 48,
+          "delay_persistent_minutes": 144.0
+        },
+        "spe": {
+          "detection_rate": 0.955,
+          "false_alarm_rate_pre_fault": 0.03125,
+          "delay_first_samples": 36,
+          "delay_first_minutes": 108.0,
+          "delay_persistent_samples": 36,
+          "delay_persistent_minutes": 108.0
+        },
+        "univariate": {
+          "detection_rate": 0.9475,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 42,
+          "delay_first_minutes": 126.0,
+          "delay_persistent_samples": 42,
+          "delay_persistent_minutes": 126.0
+        }
+      },
+      "cv": {
+        "t2": {
+          "detection_rate": 0.94,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 48,
+          "delay_first_minutes": 144.0,
+          "delay_persistent_samples": 48,
+          "delay_persistent_minutes": 144.0
+        },
+        "spe": {
+          "detection_rate": 0.955,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 36,
+          "delay_first_minutes": 108.0,
+          "delay_persistent_samples": 36,
+          "delay_persistent_minutes": 108.0
+        },
+        "univariate": {
+          "detection_rate": 0.9475,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 42,
+          "delay_first_minutes": 126.0,
+          "delay_persistent_samples": 42,
+          "delay_persistent_minutes": 126.0
+        }
+      },
+      "benchmark_pca": {
+        "t2_detection_rate": 0.94,
+        "spe_detection_rate": 0.955
+      }
+    },
+    {
+      "fault": 14,
+      "description": "Reactor cooling water valve: sticking",
+      "textbook": {
+        "t2": {
+          "detection_rate": 0.88375,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 1,
+          "delay_first_minutes": 3.0,
+          "delay_persistent_samples": 3,
+          "delay_persistent_minutes": 9.0
+        },
+        "spe": {
+          "detection_rate": 1.0,
+          "false_alarm_rate_pre_fault": 0.04375,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 0,
+          "delay_persistent_minutes": 0.0
+        },
+        "univariate": {
+          "detection_rate": 1.0,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 0,
+          "delay_persistent_minutes": 0.0
+        }
+      },
+      "cv": {
+        "t2": {
+          "detection_rate": 0.91125,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 1,
+          "delay_first_minutes": 3.0,
+          "delay_persistent_samples": 3,
+          "delay_persistent_minutes": 9.0
+        },
+        "spe": {
+          "detection_rate": 1.0,
+          "false_alarm_rate_pre_fault": 0.0125,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 0,
+          "delay_persistent_minutes": 0.0
+        },
+        "univariate": {
+          "detection_rate": 1.0,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 0,
+          "delay_persistent_minutes": 0.0
+        }
+      },
+      "benchmark_pca": {
+        "t2_detection_rate": 0.842,
+        "spe_detection_rate": 1.0
+      }
+    },
+    {
+      "fault": 15,
+      "description": "Condenser cooling water valve: sticking",
+      "textbook": {
+        "t2": {
+          "detection_rate": 0.05,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 572,
+          "delay_first_minutes": 1716.0,
+          "delay_persistent_samples": 674,
+          "delay_persistent_minutes": 2022.0
+        },
+        "spe": {
+          "detection_rate": 0.12,
+          "false_alarm_rate_pre_fault": 0.04375,
+          "delay_first_samples": 90,
+          "delay_first_minutes": 270.0,
+          "delay_persistent_samples": 719,
+          "delay_persistent_minutes": 2157.0
+        },
+        "univariate": {
+          "detection_rate": 0.12125,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 238,
+          "delay_first_minutes": 714.0,
+          "delay_persistent_samples": 683,
+          "delay_persistent_minutes": 2049.0
+        }
+      },
+      "cv": {
+        "t2": {
+          "detection_rate": 0.10375,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 240,
+          "delay_first_minutes": 720.0,
+          "delay_persistent_samples": 665,
+          "delay_persistent_minutes": 1995.0
+        },
+        "spe": {
+          "detection_rate": 0.05875,
+          "false_alarm_rate_pre_fault": 0.0125,
+          "delay_first_samples": 91,
+          "delay_first_minutes": 273.0,
+          "delay_persistent_samples": 739,
+          "delay_persistent_minutes": 2217.0
+        },
+        "univariate": {
+          "detection_rate": 0.12125,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 238,
+          "delay_first_minutes": 714.0,
+          "delay_persistent_samples": 683,
+          "delay_persistent_minutes": 2049.0
+        }
+      },
+      "benchmark_pca": {
+        "t2_detection_rate": 0.01200000000000001,
+        "spe_detection_rate": 0.027000000000000024
+      }
+    },
+    {
+      "fault": 16,
+      "description": "Unknown",
+      "textbook": {
+        "t2": {
+          "detection_rate": 0.2225,
+          "false_alarm_rate_pre_fault": 0.09375,
+          "delay_first_samples": 1,
+          "delay_first_minutes": 3.0,
+          "delay_persistent_samples": 310,
+          "delay_persistent_minutes": 930.0
+        },
+        "spe": {
+          "detection_rate": 0.5,
+          "false_alarm_rate_pre_fault": 0.0625,
+          "delay_first_samples": 4,
+          "delay_first_minutes": 12.0,
+          "delay_persistent_samples": 18,
+          "delay_persistent_minutes": 54.0
+        },
+        "univariate": {
+          "detection_rate": 0.4925,
+          "false_alarm_rate_pre_fault": 0.1125,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 28,
+          "delay_persistent_minutes": 84.0
+        }
+      },
+      "cv": {
+        "t2": {
+          "detection_rate": 0.32375,
+          "false_alarm_rate_pre_fault": 0.25,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 35,
+          "delay_persistent_minutes": 105.0
+        },
+        "spe": {
+          "detection_rate": 0.3575,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 4,
+          "delay_first_minutes": 12.0,
+          "delay_persistent_samples": 195,
+          "delay_persistent_minutes": 585.0
+        },
+        "univariate": {
+          "detection_rate": 0.4925,
+          "false_alarm_rate_pre_fault": 0.1125,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 28,
+          "delay_persistent_minutes": 84.0
+        }
+      },
+      "benchmark_pca": {
+        "t2_detection_rate": 0.16600000000000004,
+        "spe_detection_rate": 0.245
+      }
+    },
+    {
+      "fault": 17,
+      "description": "Unknown",
+      "textbook": {
+        "t2": {
+          "detection_rate": 0.7725,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 28,
+          "delay_first_minutes": 84.0,
+          "delay_persistent_samples": 28,
+          "delay_persistent_minutes": 84.0
+        },
+        "spe": {
+          "detection_rate": 0.9425,
+          "false_alarm_rate_pre_fault": 0.04375,
+          "delay_first_samples": 1,
+          "delay_first_minutes": 3.0,
+          "delay_persistent_samples": 23,
+          "delay_persistent_minutes": 69.0
+        },
+        "univariate": {
+          "detection_rate": 0.9375,
+          "false_alarm_rate_pre_fault": 0.0125,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 21,
+          "delay_persistent_minutes": 63.0
+        }
+      },
+      "cv": {
+        "t2": {
+          "detection_rate": 0.81125,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 27,
+          "delay_persistent_minutes": 81.0
+        },
+        "spe": {
+          "detection_rate": 0.91625,
+          "false_alarm_rate_pre_fault": 0.0125,
+          "delay_first_samples": 24,
+          "delay_first_minutes": 72.0,
+          "delay_persistent_samples": 24,
+          "delay_persistent_minutes": 72.0
+        },
+        "univariate": {
+          "detection_rate": 0.9375,
+          "false_alarm_rate_pre_fault": 0.0125,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 21,
+          "delay_persistent_minutes": 63.0
+        }
+      },
+      "benchmark_pca": {
+        "t2_detection_rate": 0.741,
+        "spe_detection_rate": 0.892
+      }
+    },
+    {
+      "fault": 18,
+      "description": "Unknown",
+      "textbook": {
+        "t2": {
+          "detection_rate": 0.89125,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 60,
+          "delay_first_minutes": 180.0,
+          "delay_persistent_samples": 92,
+          "delay_persistent_minutes": 276.0
+        },
+        "spe": {
+          "detection_rate": 0.91375,
+          "false_alarm_rate_pre_fault": 0.0625,
+          "delay_first_samples": 3,
+          "delay_first_minutes": 9.0,
+          "delay_persistent_samples": 82,
+          "delay_persistent_minutes": 246.0
+        },
+        "univariate": {
+          "detection_rate": 0.9,
+          "false_alarm_rate_pre_fault": 0.01875,
+          "delay_first_samples": 3,
+          "delay_first_minutes": 9.0,
+          "delay_persistent_samples": 84,
+          "delay_persistent_minutes": 252.0
+        }
+      },
+      "cv": {
+        "t2": {
+          "detection_rate": 0.89625,
+          "false_alarm_rate_pre_fault": 0.0125,
+          "delay_first_samples": 14,
+          "delay_first_minutes": 42.0,
+          "delay_persistent_samples": 87,
+          "delay_persistent_minutes": 261.0
+        },
+        "spe": {
+          "detection_rate": 0.9025,
+          "false_alarm_rate_pre_fault": 0.01875,
+          "delay_first_samples": 17,
+          "delay_first_minutes": 51.0,
+          "delay_persistent_samples": 83,
+          "delay_persistent_minutes": 249.0
+        },
+        "univariate": {
+          "detection_rate": 0.9,
+          "false_alarm_rate_pre_fault": 0.01875,
+          "delay_first_samples": 3,
+          "delay_first_minutes": 9.0,
+          "delay_persistent_samples": 84,
+          "delay_persistent_minutes": 252.0
+        }
+      },
+      "benchmark_pca": {
+        "t2_detection_rate": 0.887,
+        "spe_detection_rate": 0.899
+      }
+    },
+    {
+      "fault": 19,
+      "description": "Unknown",
+      "textbook": {
+        "t2": {
+          "detection_rate": 0.01125,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 77,
+          "delay_first_minutes": 231.0,
+          "delay_persistent_samples": null,
+          "delay_persistent_minutes": null
+        },
+        "spe": {
+          "detection_rate": 0.36375,
+          "false_alarm_rate_pre_fault": 0.04375,
+          "delay_first_samples": 10,
+          "delay_first_minutes": 30.0,
+          "delay_persistent_samples": 181,
+          "delay_persistent_minutes": 543.0
+        },
+        "univariate": {
+          "detection_rate": 0.195,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 10,
+          "delay_first_minutes": 30.0,
+          "delay_persistent_samples": null,
+          "delay_persistent_minutes": null
+        }
+      },
+      "cv": {
+        "t2": {
+          "detection_rate": 0.03375,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 10,
+          "delay_first_minutes": 30.0,
+          "delay_persistent_samples": null,
+          "delay_persistent_minutes": null
+        },
+        "spe": {
+          "detection_rate": 0.2175,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 10,
+          "delay_first_minutes": 30.0,
+          "delay_persistent_samples": null,
+          "delay_persistent_minutes": null
+        },
+        "univariate": {
+          "detection_rate": 0.195,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 10,
+          "delay_first_minutes": 30.0,
+          "delay_persistent_samples": null,
+          "delay_persistent_minutes": null
+        }
+      },
+      "benchmark_pca": {
+        "t2_detection_rate": 0.0040000000000000036,
+        "spe_detection_rate": 0.127
+      }
+    },
+    {
+      "fault": 20,
+      "description": "Unknown",
+      "textbook": {
+        "t2": {
+          "detection_rate": 0.35875,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 78,
+          "delay_first_minutes": 234.0,
+          "delay_persistent_samples": 85,
+          "delay_persistent_minutes": 255.0
+        },
+        "spe": {
+          "detection_rate": 0.5975,
+          "false_alarm_rate_pre_fault": 0.03125,
+          "delay_first_samples": 81,
+          "delay_first_minutes": 243.0,
+          "delay_persistent_samples": 81,
+          "delay_persistent_minutes": 243.0
+        },
+        "univariate": {
+          "detection_rate": 0.585,
+          "false_alarm_rate_pre_fault": 0.0125,
+          "delay_first_samples": 67,
+          "delay_first_minutes": 201.0,
+          "delay_persistent_samples": 74,
+          "delay_persistent_minutes": 222.0
+        }
+      },
+      "cv": {
+        "t2": {
+          "detection_rate": 0.47125,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 67,
+          "delay_first_minutes": 201.0,
+          "delay_persistent_samples": 84,
+          "delay_persistent_minutes": 252.0
+        },
+        "spe": {
+          "detection_rate": 0.51,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 82,
+          "delay_first_minutes": 246.0,
+          "delay_persistent_samples": 86,
+          "delay_persistent_minutes": 258.0
+        },
+        "univariate": {
+          "detection_rate": 0.585,
+          "false_alarm_rate_pre_fault": 0.0125,
+          "delay_first_samples": 67,
+          "delay_first_minutes": 201.0,
+          "delay_persistent_samples": 74,
+          "delay_persistent_minutes": 222.0
+        }
+      },
+      "benchmark_pca": {
+        "t2_detection_rate": 0.29900000000000004,
+        "spe_detection_rate": 0.44999999999999996
+      }
+    },
+    {
+      "fault": 21,
+      "description": "Valve for stream 4 fixed at its steady-state position",
+      "textbook": {
+        "t2": {
+          "detection_rate": 0.30375,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 256,
+          "delay_first_minutes": 768.0,
+          "delay_persistent_samples": 562,
+          "delay_persistent_minutes": 1686.0
+        },
+        "spe": {
+          "detection_rate": 0.5425,
+          "false_alarm_rate_pre_fault": 0.08125,
+          "delay_first_samples": 12,
+          "delay_first_minutes": 36.0,
+          "delay_persistent_samples": 281,
+          "delay_persistent_minutes": 843.0
+        },
+        "univariate": {
+          "detection_rate": 0.4175,
+          "false_alarm_rate_pre_fault": 0.03125,
+          "delay_first_samples": 335,
+          "delay_first_minutes": 1005.0,
+          "delay_persistent_samples": 505,
+          "delay_persistent_minutes": 1515.0
+        }
+      },
+      "cv": {
+        "t2": {
+          "detection_rate": 0.34875,
+          "false_alarm_rate_pre_fault": 0.0125,
+          "delay_first_samples": 21,
+          "delay_first_minutes": 63.0,
+          "delay_persistent_samples": 519,
+          "delay_persistent_minutes": 1557.0
+        },
+        "spe": {
+          "detection_rate": 0.46875,
+          "false_alarm_rate_pre_fault": 0.01875,
+          "delay_first_samples": 12,
+          "delay_first_minutes": 36.0,
+          "delay_persistent_samples": 281,
+          "delay_persistent_minutes": 843.0
+        },
+        "univariate": {
+          "detection_rate": 0.4175,
+          "false_alarm_rate_pre_fault": 0.03125,
+          "delay_first_samples": 335,
+          "delay_first_minutes": 1005.0,
+          "delay_persistent_samples": 505,
+          "delay_persistent_minutes": 1515.0
+        }
+      },
+      "benchmark_pca": {
+        "t2_detection_rate": 0.264,
+        "spe_detection_rate": 0.43000000000000005
+      }
+    }
+  ],
+  "benchmark_comparison": {
+    "t2": {
+      "mean_abs_diff": 0.027476190476190473,
+      "max_abs_diff": 0.07650000000000001,
+      "max_abs_diff_fault": 11,
+      "n_within_0_05": 17,
+      "mean_diff": 0.027476190476190473,
+      "pearson_r": 0.9985542892459327
+    },
+    "spe": {
+      "mean_abs_diff": 0.07402380952380952,
+      "max_abs_diff": 0.255,
+      "max_abs_diff_fault": 16,
+      "n_within_0_05": 10,
+      "mean_diff": 0.07402380952380952,
+      "pearson_r": 0.9854763435332828
+    }
+  },
+  "undetectable_by_pca": {
+    "3": {
+      "t2": 0.02625,
+      "spe": 0.09625
+    },
+    "9": {
+      "t2": 0.02875,
+      "spe": 0.08125
+    },
+    "15": {
+      "t2": 0.05,
+      "spe": 0.12
+    }
+  },
+  "calibration": {
+    "nominal_per_chart": 0.01,
+    "tep": {
+      "n_components": 11,
+      "explained": 0.541546300946092,
+      "in_sample": {
+        "t2": 0.006,
+        "spe": 0.004,
+        "either": 0.01
+      },
+      "out_of_fold": {
+        "t2": 0.004,
+        "spe": 0.042,
+        "either": 0.046
+      },
+      "test_normal_d00_te": {
+        "t2": 0.016666666666666666,
+        "spe": 0.07083333333333333,
+        "univariate": 0.03958333333333333,
+        "either_pca": 0.0875
+      },
+      "n_train": 500,
+      "median_excess_kurtosis": -0.10662044652844749
+    },
+    "tep_univariate": {
+      "per_chart_alpha": 0.00019325701294758968,
+      "k": 3.7276715467033537,
+      "d00_te_family_far_sd_sigma": 0.03958333333333333,
+      "d00_te_family_far_mr_sigma": 1.0,
+      "d00_te_per_chart_far_sd_sigma_mean": 0.0009014423076923077,
+      "d00_te_per_chart_far_mr_sigma_mean": 0.26260016025641025,
+      "mr_over_sd_sigma_median": 0.40110483134320973,
+      "mr_over_sd_sigma_min": 0.009392121645714903,
+      "lag1_autocorrelation_median": 0.5486176654292579,
+      "n_variables_lag1_above_0_5": 30,
+      "spearman_mr_ratio_vs_lag1": -0.9357124562451976
+    },
+    "secom": {
+      "n_components": 81,
+      "explained": 0.8007086883987895,
+      "in_sample": {
+        "t2": 0.1199442119944212,
+        "spe": 0.07531380753138076,
+        "either": 0.15760111576011157
+      },
+      "out_of_fold": {
+        "t2": 0.08647140864714087,
+        "spe": 0.7461645746164575,
+        "either": 0.7461645746164575
+      },
+      "n_baseline": 717,
+      "n_sensors": 411,
+      "median_excess_kurtosis": 6.762894854673206,
+      "baseline_lag1_autocorrelation_median": 0.041241948635018004,
+      "baseline_mr_over_sd_sigma_median": 0.7829742673649377
+    }
+  },
+  "sensitivity": [
+    {
+      "n_components": 5,
+      "explained": 0.3437709363214669,
+      "secom_variance_rule": false,
+      "d00_te_far_t2": 0.029166666666666667,
+      "d00_te_far_spe": 0.035416666666666666,
+      "mean_detection_t2_detectable_faults": 0.6090972222222222,
+      "mean_detection_spe_detectable_faults": 0.7627777777777777
+    },
+    {
+      "n_components": 9,
+      "explained": 0.485659075512824,
+      "secom_variance_rule": false,
+      "d00_te_far_t2": 0.020833333333333332,
+      "d00_te_far_spe": 0.052083333333333336,
+      "mean_detection_t2_detectable_faults": 0.6051388888888888,
+      "mean_detection_spe_detectable_faults": 0.7917361111111112
+    },
+    {
+      "n_components": 11,
+      "explained": 0.541546300946092,
+      "secom_variance_rule": false,
+      "d00_te_far_t2": 0.016666666666666666,
+      "d00_te_far_spe": 0.07083333333333333,
+      "mean_detection_t2_detectable_faults": 0.6261111111111111,
+      "mean_detection_spe_detectable_faults": 0.8025
+    },
+    {
+      "n_components": 15,
+      "explained": 0.6369880291485256,
+      "secom_variance_rule": false,
+      "d00_te_far_t2": 0.01875,
+      "d00_te_far_spe": 0.103125,
+      "mean_detection_t2_detectable_faults": 0.6384722222222222,
+      "mean_detection_spe_detectable_faults": 0.8154166666666667
+    },
+    {
+      "n_components": 20,
+      "explained": 0.737049791094312,
+      "secom_variance_rule": false,
+      "d00_te_far_t2": 0.022916666666666665,
+      "d00_te_far_spe": 0.13333333333333333,
+      "mean_detection_t2_detectable_faults": 0.6402083333333333,
+      "mean_detection_spe_detectable_faults": 0.8320833333333333
+    },
+    {
+      "n_components": 24,
+      "explained": 0.8050586753401388,
+      "secom_variance_rule": true,
+      "d00_te_far_t2": 0.015625,
+      "d00_te_far_spe": 0.165625,
+      "mean_detection_t2_detectable_faults": 0.6535416666666667,
+      "mean_detection_spe_detectable_faults": 0.8426388888888889
+    }
+  ]
+}
