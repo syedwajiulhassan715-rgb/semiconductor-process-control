@@ -50,6 +50,7 @@ from . import plotting
 from .context import MissingArtifactError, Paths, PipelineContext
 from .stages import (
     audit,
+    changepoint,
     clean,
     cusum,
     export,
@@ -57,6 +58,7 @@ from .stages import (
     load,
     model,
     sensor_screen,
+    shift_simulation,
     yield_charts,
 )
 
@@ -68,6 +70,8 @@ STAGES: list[ModuleType] = [
     cusum,
     sensor_screen,
     model,
+    shift_simulation,
+    changepoint,
     figures,
     export,
 ]
