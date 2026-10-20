@@ -59,6 +59,9 @@ Dataset = "https://doi.org/10.24432/C54305"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+secom = ["monitor_static/*.html"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]

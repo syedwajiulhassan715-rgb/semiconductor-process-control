@@ -1,4 +1,4 @@
-"""Command-line interface: ``secom fetch``, ``secom run`` and ``secom stages``."""
+"""Command-line interface: ``secom fetch | run | stages | monitor``."""
 
 from __future__ import annotations
 
@@ -71,6 +71,40 @@ def _cmd_stages(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_monitor(args: argparse.Namespace) -> int:
+    from .monitor import session_from_outputs
+    from .monitor_server import serve
+
+    if args.speed <= 0:
+        print("secom: --speed must be positive", file=sys.stderr)
+        return 2
+    try:
+        session = session_from_outputs(_root(args))
+    except FileNotFoundError as exc:
+        print(f"secom: {exc}", file=sys.stderr)
+        return 2
+    try:
+        server = serve(
+            session, host=args.host, port=args.port, speed=args.speed, quiet=not args.verbose
+        )
+    except OSError as exc:
+        print(f"secom: cannot listen on {args.host}:{args.port} ({exc})", file=sys.stderr)
+        return 2
+    print(f"replay monitor: {len(session.runs)} runs, watching {session.design.watch_sensor}")
+    print(f"open {server.url}  (Ctrl+C to stop)")
+    if args.open:
+        import webbrowser
+
+        webbrowser.open(server.url)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     from .pipeline import stage_names
 
@@ -128,6 +162,26 @@ def build_parser() -> argparse.ArgumentParser:
         help="show the artifacts each stage reads and writes",
     )
     p_stages.set_defaults(func=_cmd_stages)
+
+    p_monitor = sub.add_parser(
+        "monitor",
+        parents=[common],
+        help="replay the runs through the recommended monitors in a local web page",
+    )
+    p_monitor.add_argument(
+        "--host", default="127.0.0.1", help="interface to bind (default: %(default)s)"
+    )
+    p_monitor.add_argument("--port", type=int, default=8050, help="port (default: %(default)s)")
+    p_monitor.add_argument(
+        "--speed",
+        type=float,
+        default=20.0,
+        metavar="RUNS_PER_SEC",
+        help="initial playback speed (default: %(default)s)",
+    )
+    p_monitor.add_argument("--open", action="store_true", help="open the page in a browser")
+    p_monitor.add_argument("-v", "--verbose", action="store_true", help="log every request")
+    p_monitor.set_defaults(func=_cmd_monitor)
     return parser
 
 
