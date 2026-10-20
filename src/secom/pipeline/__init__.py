@@ -56,6 +56,7 @@ from .stages import (
     figures,
     load,
     model,
+    multivariate,
     sensor_screen,
     yield_charts,
 )
@@ -68,6 +69,7 @@ STAGES: list[ModuleType] = [
     cusum,
     sensor_screen,
     model,
+    multivariate,
     figures,
     export,
 ]
