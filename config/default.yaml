@@ -1,0 +1,45 @@
+# Analysis configuration for the SECOM pipeline.
+#
+# Every value here is the default baked into src/secom/config.py, and a test
+# keeps the two identical. Copy this file and pass it with
+#   secom run --config my.yaml
+# to rerun the analysis under different choices. Unknown keys are an error.
+# The decision numbers (D2, D5, ...) refer to DECISIONS.md.
+
+# One seed for model fits, CV splits, the CUSUM simulation and permutations.
+seed: 20080719
+# Significance level for every FDR-controlled screen (Benjamini-Hochberg q).
+alpha: 0.05
+
+audit:
+  max_missing_frac: 0.20   # D2: any value in [0.175, 0.456] drops the same 32
+  near_duplicate_r: 0.999  # D4
+
+clean:
+  impute_window: 25        # D5: trailing rolling-median window, in runs
+
+regimes:
+  pre_baseline_max_week: 34
+  baseline_weeks: [35, 39] # D7: Phase I baseline, inclusive ISO weeks
+
+cusum:                     # D12
+  shift_ratio: 2.0         # p1 = shift_ratio * p0
+  target_arl0: 500.0       # in-control average run length, in runs
+  n_sim: 3000              # simulated paths for calibrating h
+  max_run: 8000            # length of each simulated path
+
+sensors:
+  watchlist_regime_top: 25 # D19: top regime movers added to the watchlist
+  watchlist_max: 40
+  large_effect_delta: 0.5  # D14: |Cliff's delta| counted as a large shift
+
+model:
+  train_frac: 0.70         # D16: forward chronological split
+  cv_folds: 10             # shuffled-CV contrast
+  n_perm: 60               # label permutations for the null distribution
+  rolling_origin_fracs: [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85]
+  triage_top_k_pct: [5, 10, 15, 20, 25, 30, 40, 50]
+
+figures:
+  format: png              # png | svg (svg needs no compiled backend)
+  dpi: 130

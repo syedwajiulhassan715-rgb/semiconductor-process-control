@@ -113,7 +113,7 @@ def audit_sensors(
     for s in sensors:
         if audit.at[s, "disposition"]:
             continue
-        h = audit.at[s, "_hash"]
+        h = str(audit.at[s, "_hash"])
         if h in seen:
             audit.at[s, "disposition"] = "drop_duplicate"
             audit.at[s, "duplicate_of"] = seen[h]

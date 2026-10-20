@@ -8,6 +8,7 @@ for overdispersion before picking the limits.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import cast
 
 import numpy as np
 import pandas as pd
@@ -477,7 +478,7 @@ def bernoulli_cusum(
     signal = np.zeros(len(x), dtype=bool)
     acc = 0.0
     for i, inc in enumerate(increments):
-        acc = max(0.0, acc + inc)
+        acc = max(0.0, acc + float(inc))
         s[i] = acc
         if acc > h:
             signal[i] = True
@@ -523,7 +524,8 @@ def calibrate_cusum_h(
     w_fail = np.log(p1 / p0)
     w_pass = np.log((1 - p1) / (1 - p0))
     stream = rng.random((n_sim, max_run)) < p0
-    inc = np.where(stream, w_fail, w_pass)
+    # numpy's stubs resolve this to the one-argument overload; it is an array
+    inc = cast(np.ndarray, np.where(stream, w_fail, w_pass))
 
     # simulate the paths once and reuse them for every h
     acc = np.zeros(n_sim)
