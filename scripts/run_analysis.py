@@ -40,6 +40,7 @@ from secom.model import (  # noqa: E402
     evaluate_forward,
     evaluate_shuffled,
     make_models,
+    permutation_null,
 )
 from secom.spc import (  # noqa: E402
     bernoulli_cusum,
@@ -62,6 +63,7 @@ FIGS = ROOT / "reports" / "figures"
 BASELINE_WEEKS = (35, 39)
 PRE_BASELINE_MAX_WEEK = 34
 TRAIN_FRAC = 0.70
+N_PERM = 60
 SEED = 20080719
 
 INK = "#1b1b1b"
@@ -137,9 +139,7 @@ def main() -> int:
         "cells_total": int(n_cells),
         "imputed_pct": float(100 * impute_log["n_missing"].sum() / n_cells),
         "lookahead_cells": int(impute_log["filled_seed_lookahead"].sum()),
-        "lookahead_pct": float(
-            100 * impute_log["filled_seed_lookahead"].sum() / n_cells
-        ),
+        "lookahead_pct": float(100 * impute_log["filled_seed_lookahead"].sum() / n_cells),
     }
     print(f"[3/9] cleaned: {R['cleaning']['imputed_pct']:.2f}% of cells imputed")
 
@@ -152,21 +152,28 @@ def main() -> int:
     # yield charts
     wkly = clean.groupby("year_week")["is_fail"].agg(n="size", d="sum").reset_index()
     naive = p_chart(
-        wkly["d"].to_numpy(), wkly["n"].to_numpy(),
-        labels=wkly["year_week"].to_numpy(), force_type="p",
+        wkly["d"].to_numpy(),
+        wkly["n"].to_numpy(),
+        labels=wkly["year_week"].to_numpy(),
+        force_type="p",
     )
     laney = p_chart(
-        wkly["d"].to_numpy(), wkly["n"].to_numpy(),
+        wkly["d"].to_numpy(),
+        wkly["n"].to_numpy(),
         labels=wkly["year_week"].to_numpy(),
     )
     # laney is centred on all weeks. The Power BI chart is centred on the
     # Phase I weeks only, so compute that version too to check the DAX against.
     base_weeks = (
-        clean.groupby("year_week")["iso_week"].first().reindex(wkly["year_week"])
-        .between(*BASELINE_WEEKS).to_numpy()
+        clean.groupby("year_week")["iso_week"]
+        .first()
+        .reindex(wkly["year_week"])
+        .between(*BASELINE_WEEKS)
+        .to_numpy()
     )
     laney_p1 = p_chart(
-        wkly["d"].to_numpy(), wkly["n"].to_numpy(),
+        wkly["d"].to_numpy(),
+        wkly["n"].to_numpy(),
         labels=wkly["year_week"].to_numpy(),
         baseline=base_weeks,
     )
@@ -192,9 +199,7 @@ def main() -> int:
         "dispersion_chi2_p": float(laney.dispersion_p),
         "chart_type": laney.chart_type,
         "naive_violations": int(naive.table["violation"].sum()),
-        "naive_violation_weeks": list(
-            wkly["year_week"][naive.table["violation"].to_numpy()]
-        ),
+        "naive_violation_weeks": list(wkly["year_week"][naive.table["violation"].to_numpy()]),
         "laney_violations": int(laney.table["violation"].sum()),
         "n_needed_for_nonzero_lcl": float(n_for_lcl),
         "weeks_with_lcl_pinned_at_zero": int((wkly["n"] < n_for_lcl).sum()),
@@ -212,8 +217,10 @@ def main() -> int:
         "g_chart_center": float(gch.center),
         "g_chart_violations": int(gch.table["violation"].sum()),
     }
-    print(f"[4/9] yield: sigma_z={laney.sigma_z:.3f}, naive flags "
-          f"{naive.table['violation'].sum()}, Laney flags {laney.table['violation'].sum()}")
+    print(
+        f"[4/9] yield: sigma_z={laney.sigma_z:.3f}, naive flags "
+        f"{naive.table['violation'].sum()}, Laney flags {laney.table['violation'].sum()}"
+    )
 
     # CUSUM
     p0 = float(is_fail[m_base].mean())
@@ -222,7 +229,11 @@ def main() -> int:
     cusum_all = bernoulli_cusum(is_fail, p0=p0, p1=p1, h=h)
 
     detect = {}
-    for label, mask in (("pre_baseline", m_pre), ("phase_ii", m_post), ("baseline_self_check", m_base)):
+    for label, mask in (
+        ("pre_baseline", m_pre),
+        ("phase_ii", m_post),
+        ("baseline_self_check", m_base),
+    ):
         sub = bernoulli_cusum(is_fail[mask], p0=p0, p1=p1, h=h)
         idx = sub.first_signal_index
         ts = clean.loc[mask, "timestamp"].to_numpy()
@@ -241,14 +252,21 @@ def main() -> int:
             "alarm_episodes": episodes,
         }
     R["cusum"] = {
-        "p0": p0, "p1": p1, "h": float(h), "arl0_runs": float(arl0),
-        "baseline_weeks": list(BASELINE_WEEKS), "detection": detect,
+        "p0": p0,
+        "p1": p1,
+        "h": float(h),
+        "arl0_runs": float(arl0),
+        "baseline_weeks": list(BASELINE_WEEKS),
+        "detection": detect,
     }
-    print(f"[5/9] CUSUM: h={h:.3f}, ARL0={arl0:.0f}; Phase II signal in "
-          f"{detect['phase_ii']['runs_to_signal']} runs")
+    print(
+        f"[5/9] CUSUM: h={h:.3f}, ARL0={arl0:.0f}; Phase II signal in "
+        f"{detect['phase_ii']['runs_to_signal']} runs"
+    )
 
     # sensor screening
-    rho = np.empty(len(retained)); pv = np.empty(len(retained))
+    rho = np.empty(len(retained))
+    pv = np.empty(len(retained))
     for i, s in enumerate(retained):
         rho[i], pv[i] = sps.spearmanr(clean["run_index"], clean[s])
     drift = pd.DataFrame(
@@ -289,9 +307,11 @@ def main() -> int:
     R["sensors"]["hits_surviving_confound_check"] = confound.loc[
         confound["p_within_stable"] < 0.05, "sensor"
     ].tolist()
-    print(f"[6/9] sensors: {R['sensors']['drift_pct']:.0f}% drift; "
-          f"{R['sensors']['fail_all_sig']} raw hits -> "
-          f"{len(R['sensors']['hits_surviving_confound_check'])} survive confound check")
+    print(
+        f"[6/9] sensors: {R['sensors']['drift_pct']:.0f}% drift; "
+        f"{R['sensors']['fail_all_sig']} raw hits -> "
+        f"{len(R['sensors']['hits_surviving_confound_check'])} survive confound check"
+    )
 
     # watchlist: tier 1/2 sensors + top 25 regime movers, max 40
     watch = list(
@@ -325,28 +345,36 @@ def main() -> int:
     # model
     X, y = clean[retained], is_fail
     model_rows = [r.as_row() for r in evaluate_shuffled(X, y, make_models(seed=SEED))]
-    model_rows += [r.as_row() for r in evaluate_forward(X, y, make_models(seed=SEED), train_frac=TRAIN_FRAC)]
+    model_rows += [
+        r.as_row() for r in evaluate_forward(X, y, make_models(seed=SEED), train_frac=TRAIN_FRAC)
+    ]
     models_df = pd.DataFrame(model_rows)
 
     rolling = []
     for frac in (0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85):
-        r = evaluate_forward(X, y, {"logistic_l2": make_models(SEED)["logistic_l2"]}, train_frac=frac)[0]
+        r = evaluate_forward(
+            X, y, {"logistic_l2": make_models(SEED)["logistic_l2"]}, train_frac=frac
+        )[0]
         rolling.append(
-            {"train_frac": frac, "n_test": r.n_test, "n_test_fail": r.n_test_fail,
-             "BER": r.ber, "ROC_AUC": r.roc_auc, "PR_AUC": r.pr_auc}
+            {
+                "train_frac": frac,
+                "n_test": r.n_test,
+                "n_test_fail": r.n_test_fail,
+                "BER": r.ber,
+                "ROC_AUC": r.roc_auc,
+                "PR_AUC": r.pr_auc,
+            }
         )
     rolling_df = pd.DataFrame(rolling)
 
-    rng = np.random.default_rng(SEED)
-    null = np.array(
-        [
-            evaluate_forward(X, rng.permutation(y), {"m": make_models(SEED)["logistic_l2"]}, train_frac=TRAIN_FRAC)[0].roc_auc
-            for _ in range(60)
-        ]
+    obs_auc, null = permutation_null(
+        X,
+        y,
+        make_models(SEED)["logistic_l2"],
+        n_perm=N_PERM,
+        train_frac=TRAIN_FRAC,
+        seed=SEED,
     )
-    obs_auc = float(models_df.loc[
-        (models_df["model"] == "logistic_l2")
-        & (models_df["protocol"] == "forward_chronological"), "ROC_AUC"].iloc[0])
 
     cut = int(len(clean) * TRAIN_FRAC)
     mdl = make_models(SEED)["logistic_l2"]
@@ -360,9 +388,13 @@ def main() -> int:
         flagged = scores_te >= thr
         cap = int((flagged & y_te).sum())
         triage.append(
-            {"top_k_pct": k, "n_flagged": int(flagged.sum()), "captured": cap,
-             "capture_pct": float(100 * cap / y_te.sum()),
-             "lift": float((cap / flagged.sum()) / y_te.mean())}
+            {
+                "top_k_pct": k,
+                "n_flagged": int(flagged.sum()),
+                "captured": cap,
+                "capture_pct": float(100 * cap / y_te.sum()),
+                "lift": float((cap / flagged.sum()) / y_te.mean()),
+            }
         )
     triage_df = pd.DataFrame(triage)
 
@@ -381,32 +413,68 @@ def main() -> int:
         "triage": triage,
         "best_lift": float(triage_df["lift"].max()),
     }
-    shuffled_ber = float(models_df.loc[
-        (models_df["model"] == "logistic_l2")
-        & (models_df["protocol"].str.contains("shuffled")), "BER"].iloc[0])
-    forward_ber = float(models_df.loc[
-        (models_df["model"] == "logistic_l2")
-        & (models_df["protocol"] == "forward_chronological"), "BER"].iloc[0])
+    shuffled_ber = float(
+        models_df.loc[
+            (models_df["model"] == "logistic_l2")
+            & (models_df["protocol"].str.contains("shuffled")),
+            "BER",
+        ].iloc[0]
+    )
+    forward_ber = float(
+        models_df.loc[
+            (models_df["model"] == "logistic_l2")
+            & (models_df["protocol"] == "forward_chronological"),
+            "BER",
+        ].iloc[0]
+    )
     R["model"]["ber_shuffled"] = shuffled_ber
     R["model"]["ber_forward"] = forward_ber
-    print(f"[7/9] model: BER shuffled {shuffled_ber:.3f} -> forward {forward_ber:.3f}; "
-          f"AUC {obs_auc:.3f} vs null {null.mean():.3f}")
+    print(
+        f"[7/9] model: BER shuffled {shuffled_ber:.3f} -> forward {forward_ber:.3f}; "
+        f"AUC {obs_auc:.3f} vs null {null.mean():.3f}"
+    )
 
     # figures
-    _figures(clean, wkly, naive, laney, cusum_all, m_pre, m_base, m_post,
-             audit, regime, fail_all, fail_stable, confound, rolling_df,
-             null, obs_auc, triage_df, models_df, R)
+    _figures(
+        clean,
+        wkly,
+        naive,
+        laney,
+        cusum_all,
+        m_pre,
+        m_base,
+        m_post,
+        audit,
+        regime,
+        fail_all,
+        fail_stable,
+        confound,
+        rolling_df,
+        null,
+        obs_auc,
+        triage_df,
+        models_df,
+        R,
+    )
     print("[8/9] figures written")
 
     # exports
     phase = pd.Series(
-        np.select([m_pre, m_base], ["0 - pre-baseline", "1 - Phase I baseline"],
-                  default="2 - Phase II monitored"),
+        np.select(
+            [m_pre, m_base],
+            ["0 - pre-baseline", "1 - Phase I baseline"],
+            default="2 - Phase II monitored",
+        ),
         index=clean.index,
     )
     dim_sensor = build_dim_sensor(
-        audit, drift=drift, regime=regime, fail_all=fail_all,
-        fail_stable=fail_stable, limits=limits, watchlist=watch,
+        audit,
+        drift=drift,
+        regime=regime,
+        fail_all=fail_all,
+        fail_stable=fail_stable,
+        limits=limits,
+        watchlist=watch,
     )
     fact_run = build_fact_run(clean, cusum=cusum_all.table, model_score=None, phase=phase)
     fact_run.loc[fact_run.index[cut:], "model_score"] = scores_te
@@ -428,8 +496,7 @@ def main() -> int:
         "fact_gchart": gch.table,
     }
     manifest = write_all(POWERBI_DATA, tables)
-    clean.to_csv(PROCESSED / "secom_clean_wide.csv", index=False,
-                 date_format="%Y-%m-%dT%H:%M:%S")
+    clean.to_csv(PROCESSED / "secom_clean_wide.csv", index=False, date_format="%Y-%m-%dT%H:%M:%S")
     audit.to_csv(PROCESSED / "sensor_audit.csv")
     models_df.to_csv(PROCESSED / "model_results.csv", index=False)
     confound.to_csv(PROCESSED / "confound_check.csv", index=False)
@@ -445,109 +512,216 @@ def main() -> int:
     return 0
 
 
-def _figures(clean, wkly, naive, laney, cusum_all, m_pre, m_base, m_post,
-             audit, regime, fail_all, fail_stable, confound, rolling_df,
-             null, obs_auc, triage_df, models_df, R) -> None:
+def _figures(
+    clean,
+    wkly,
+    naive,
+    laney,
+    cusum_all,
+    m_pre,
+    m_base,
+    m_post,
+    audit,
+    regime,
+    fail_all,
+    fail_stable,
+    confound,
+    rolling_df,
+    null,
+    obs_auc,
+    triage_df,
+    models_df,
+    R,
+) -> None:
     # Fig 1: weekly p-chart, naive vs Laney
     fig, ax = plt.subplots(figsize=(8.2, 3.6))
     x = np.arange(len(wkly))
-    ax.fill_between(x, naive.table["lcl"], naive.table["ucl"], color=ACCENT, alpha=0.10,
-                    step="mid", label="naive p-chart limits")
-    ax.step(x, laney.table["ucl"], where="mid", color=INK, lw=1.2, ls="--",
-            label=f"Laney p' UCL (σ_z={laney.sigma_z:.2f})")
+    ax.fill_between(
+        x,
+        naive.table["lcl"],
+        naive.table["ucl"],
+        color=ACCENT,
+        alpha=0.10,
+        step="mid",
+        label="naive p-chart limits",
+    )
+    ax.step(
+        x,
+        laney.table["ucl"],
+        where="mid",
+        color=INK,
+        lw=1.2,
+        ls="--",
+        label=f"Laney p' UCL (σ_z={laney.sigma_z:.2f})",
+    )
     ax.step(x, naive.table["ucl"], where="mid", color=ACCENT, lw=1.0, alpha=0.7)
     ax.axhline(laney.p_bar, color=MUTED, lw=1, label=f"p̄ = {laney.p_bar:.3f}")
     ax.plot(x, wkly["d"] / wkly["n"], "o-", color=INK, ms=4.5, lw=1.3, label="weekly fail rate")
     viol = naive.table["violation"].to_numpy()
-    ax.plot(x[viol], (wkly["d"] / wkly["n"])[viol], "o", ms=10, mfc="none",
-            mec=ACCENT, mew=1.8, label="flagged by naive chart only")
-    ax.set_xticks(x); ax.set_xticklabels(wkly["year_week"], rotation=45, ha="right", fontsize=7)
-    ax.set_ylabel("failure rate"); ax.set_ylim(0, None)
+    ax.plot(
+        x[viol],
+        (wkly["d"] / wkly["n"])[viol],
+        "o",
+        ms=10,
+        mfc="none",
+        mec=ACCENT,
+        mew=1.8,
+        label="flagged by naive chart only",
+    )
+    ax.set_xticks(x)
+    ax.set_xticklabels(wkly["year_week"], rotation=45, ha="right", fontsize=7)
+    ax.set_ylabel("failure rate")
+    ax.set_ylim(0, None)
     ax.set_title("Weekly failure rate: overdispersion removes the only alarm")
     ax.legend(fontsize=7, frameon=False, ncol=2)
     ax.grid(axis="y", lw=0.6)
-    fig.tight_layout(); fig.savefig(FIGS / "fig01_yield_pchart.png"); plt.close(fig)
+    fig.tight_layout()
+    fig.savefig(FIGS / "fig01_yield_pchart.png")
+    plt.close(fig)
 
     # Fig 2: CUSUM
+    arl0 = R["cusum"]["arl0_runs"]
+    h_label = f"decision interval h = {cusum_all.h:.2f}  (ARL₀ ≈ {arl0:.0f} runs)"
     fig, ax = plt.subplots(figsize=(8.2, 3.4))
     t = clean["timestamp"]
     ax.plot(t, cusum_all.table["cusum"], color=INK, lw=0.9)
-    ax.axhline(cusum_all.h, color=ACCENT, lw=1.2, ls="--",
-               label=f"decision interval h = {cusum_all.h:.2f}  (ARL₀ ≈ {R['cusum']['arl0_runs']:.0f} runs)")
-    for mask, colour, lab in ((m_pre, ACCENT, "pre-baseline"), (m_base, GOOD, "Phase I baseline"),
-                              (m_post, "#3a5f9e", "Phase II monitored")):
+    ax.axhline(
+        cusum_all.h,
+        color=ACCENT,
+        lw=1.2,
+        ls="--",
+        label=h_label,
+    )
+    for mask, colour, lab in (
+        (m_pre, ACCENT, "pre-baseline"),
+        (m_base, GOOD, "Phase I baseline"),
+        (m_post, "#3a5f9e", "Phase II monitored"),
+    ):
         ax.axvspan(t[mask].min(), t[mask].max(), color=colour, alpha=0.07, label=lab)
     sig = cusum_all.table["signal"].to_numpy()
-    ax.plot(t[sig], cusum_all.table["cusum"][sig], "v", color=ACCENT, ms=5,
-            label=f"alarm ({sig.sum()} runs)")
+    ax.plot(
+        t[sig],
+        cusum_all.table["cusum"][sig],
+        "v",
+        color=ACCENT,
+        ms=5,
+        label=f"alarm ({sig.sum()} runs)",
+    )
     det = R["cusum"]["detection"]
-    for mask, key, lab in ((m_pre, "pre_baseline", "W29–34"),
-                           (m_base, "baseline_self_check", "W35–39"),
-                           (m_post, "phase_ii", "W40–42")):
+    for mask, key, lab in (
+        (m_pre, "pre_baseline", "W29–34"),
+        (m_base, "baseline_self_check", "W35–39"),
+        (m_post, "phase_ii", "W40–42"),
+    ):
         centre = t[mask].iloc[int(mask.sum() // 2)]
-        ax.text(centre, 2.60,
-                f"{lab}\n{det[key]['rate']:.1%} fail · {det[key]['alarm_episodes']} alarms",
-                ha="center", va="bottom", fontsize=6.8, color=MUTED)
+        ax.text(
+            centre,
+            2.60,
+            f"{lab}\n{det[key]['rate']:.1%} fail · {det[key]['alarm_episodes']} alarms",
+            ha="center",
+            va="bottom",
+            fontsize=6.8,
+            color=MUTED,
+        )
     ax.set_ylim(0, 3.25)
-    ax.set_ylabel("CUSUM statistic"); ax.set_title(
-        "Bernoulli CUSUM on run-level pass/fail — signals what the p-chart cannot")
-    ax.legend(fontsize=7, frameon=False, ncol=2, loc="upper left"); ax.grid(axis="y", lw=0.6)
+    ax.set_ylabel("CUSUM statistic")
+    ax.set_title("Bernoulli CUSUM on run-level pass/fail — signals what the p-chart cannot")
+    ax.legend(fontsize=7, frameon=False, ncol=2, loc="upper left")
+    ax.grid(axis="y", lw=0.6)
     fig.autofmt_xdate()
-    fig.tight_layout(); fig.savefig(FIGS / "fig02_cusum.png"); plt.close(fig)
+    fig.tight_layout()
+    fig.savefig(FIGS / "fig02_cusum.png")
+    plt.close(fig)
 
     # Fig 3: evidence funnel
     fig, ax = plt.subplots(figsize=(7.4, 3.2))
-    stages = ["raw sensors", "survive audit", "shift with\nyield regime",
-              "associate with\nfailure (all runs)", "survive time-\nconfound check"]
-    counts = [R["dataset"]["n_sensors_raw"], R["audit"]["n_retained"],
-              R["sensors"]["regime_sig"], R["sensors"]["fail_all_sig"],
-              len(R["sensors"]["hits_surviving_confound_check"])]
+    stages = [
+        "raw sensors",
+        "survive audit",
+        "shift with\nyield regime",
+        "associate with\nfailure (all runs)",
+        "survive time-\nconfound check",
+    ]
+    counts = [
+        R["dataset"]["n_sensors_raw"],
+        R["audit"]["n_retained"],
+        R["sensors"]["regime_sig"],
+        R["sensors"]["fail_all_sig"],
+        len(R["sensors"]["hits_surviving_confound_check"]),
+    ]
     bars = ax.bar(stages, counts, color=[MUTED, MUTED, "#c8a57d", ACCENT, GOOD], width=0.62)
     for b, c in zip(bars, counts, strict=True):
         ax.text(b.get_x() + b.get_width() / 2, c + 8, str(c), ha="center", fontweight="bold")
-    ax.set_yscale("symlog"); ax.set_ylabel("sensors (log scale)")
+    ax.set_yscale("symlog")
+    ax.set_ylabel("sensors (log scale)")
     ax.set_title("Evidence funnel: 590 candidate signals reduce to one defensible finding")
-    ax.tick_params(axis="x", labelsize=7.5); ax.grid(axis="y", lw=0.6)
-    fig.tight_layout(); fig.savefig(FIGS / "fig03_evidence_funnel.png"); plt.close(fig)
+    ax.tick_params(axis="x", labelsize=7.5)
+    ax.grid(axis="y", lw=0.6)
+    fig.tight_layout()
+    fig.savefig(FIGS / "fig03_evidence_funnel.png")
+    plt.close(fig)
 
     # Fig 4: sensor that survived the confound check
     surv = R["sensors"]["hits_surviving_confound_check"]
     if surv:
         s = surv[0]
-        fig, (a1, a2) = plt.subplots(1, 2, figsize=(8.4, 3.3),
-                                     gridspec_kw={"width_ratios": [2.1, 1]})
-        v = clean[s].to_numpy(); f = clean["is_fail"].to_numpy()
+        fig, (a1, a2) = plt.subplots(
+            1, 2, figsize=(8.4, 3.3), gridspec_kw={"width_ratios": [2.1, 1]}
+        )
+        v = clean[s].to_numpy()
+        f = clean["is_fail"].to_numpy()
         a1.plot(clean["timestamp"], v, lw=0.6, color=MUTED, zorder=1)
         a1.scatter(clean["timestamp"][f], v[f], s=16, color=ACCENT, zorder=3, label="fail")
-        a1.set_title(f"{s} over the campaign"); a1.set_ylabel(f"{s} value")
-        a1.legend(fontsize=7, frameon=False); a1.grid(axis="y", lw=0.6)
+        a1.set_title(f"{s} over the campaign")
+        a1.set_ylabel(f"{s} value")
+        a1.legend(fontsize=7, frameon=False)
+        a1.grid(axis="y", lw=0.6)
         groups, labels = [], []
         for lab, m in (("W29–34", m_pre), ("W35–39", m_base), ("W40–42", m_post)):
-            groups += [v[m & ~f], v[m & f]]; labels += [f"{lab}\npass", f"{lab}\nfail"]
+            groups += [v[m & ~f], v[m & f]]
+            labels += [f"{lab}\npass", f"{lab}\nfail"]
         bp = a2.boxplot(groups, tick_labels=labels, showfliers=False, patch_artist=True, widths=0.6)
         for i, patch in enumerate(bp["boxes"]):
-            patch.set_facecolor(ACCENT if i % 2 else "#dddddd"); patch.set_edgecolor(INK)
-        for med in bp["medians"]: med.set_color(INK)
-        a2.tick_params(axis="x", labelsize=6.5); a2.grid(axis="y", lw=0.6)
+            patch.set_facecolor(ACCENT if i % 2 else "#dddddd")
+            patch.set_edgecolor(INK)
+        for med in bp["medians"]:
+            med.set_color(INK)
+        a2.tick_params(axis="x", labelsize=6.5)
+        a2.grid(axis="y", lw=0.6)
         a2.set_title("separation by regime")
-        fig.tight_layout(); fig.savefig(FIGS / "fig04_surviving_sensor.png"); plt.close(fig)
+        fig.tight_layout()
+        fig.savefig(FIGS / "fig04_surviving_sensor.png")
+        plt.close(fig)
 
     # Fig 5: protocol effect
     fig, (a1, a2) = plt.subplots(1, 2, figsize=(8.4, 3.2))
     sub = models_df[models_df["model"] == "logistic_l2"]
-    a1.bar(["shuffled\n10-fold CV", "forward\nchronological"],
-           [sub[sub.protocol.str.contains('shuffled')]["ROC_AUC"].iloc[0],
-            sub[sub.protocol == "forward_chronological"]["ROC_AUC"].iloc[0]],
-           color=[ACCENT, INK], width=0.5)
-    a1.axhline(0.5, color=MUTED, ls="--", lw=1); a1.text(1.45, 0.51, "chance", fontsize=7, color=MUTED)
-    a1.set_ylim(0.4, 0.8); a1.set_ylabel("ROC AUC")
-    a1.set_title("Shuffling the split buys apparent skill"); a1.grid(axis="y", lw=0.6)
-    a2.hist(null, bins=16, color="#dddddd", edgecolor=MUTED,
-            label=f"permuted labels (n={len(null)})")
+    a1.bar(
+        ["shuffled\n10-fold CV", "forward\nchronological"],
+        [
+            sub[sub.protocol.str.contains("shuffled")]["ROC_AUC"].iloc[0],
+            sub[sub.protocol == "forward_chronological"]["ROC_AUC"].iloc[0],
+        ],
+        color=[ACCENT, INK],
+        width=0.5,
+    )
+    a1.axhline(0.5, color=MUTED, ls="--", lw=1)
+    a1.text(1.45, 0.51, "chance", fontsize=7, color=MUTED)
+    a1.set_ylim(0.4, 0.8)
+    a1.set_ylabel("ROC AUC")
+    a1.set_title("Shuffling the split buys apparent skill")
+    a1.grid(axis="y", lw=0.6)
+    a2.hist(
+        null, bins=16, color="#dddddd", edgecolor=MUTED, label=f"permuted labels (n={len(null)})"
+    )
     a2.axvline(obs_auc, color=ACCENT, lw=2, label=f"observed = {obs_auc:.3f}")
-    a2.set_xlabel("forward-split ROC AUC"); a2.set_title("…but the residual signal is real")
-    a2.legend(fontsize=7, frameon=False); a2.grid(axis="y", lw=0.6)
-    fig.tight_layout(); fig.savefig(FIGS / "fig05_protocol.png"); plt.close(fig)
+    a2.set_xlabel("forward-split ROC AUC")
+    a2.set_title("…but the residual signal is real")
+    a2.legend(fontsize=7, frameon=False)
+    a2.grid(axis="y", lw=0.6)
+    fig.tight_layout()
+    fig.savefig(FIGS / "fig05_protocol.png")
+    plt.close(fig)
 
     # Fig 6: triage capture curve
     fig, ax = plt.subplots(figsize=(6.4, 3.2))
@@ -556,8 +730,11 @@ def _figures(clean, wkly, naive, laney, cusum_all, m_pre, m_base, m_post,
     ax.set_xlabel("% of runs sent for engineering review")
     ax.set_ylabel("% of failures captured")
     ax.set_title("Review effort vs failures caught — barely better than random")
-    ax.legend(fontsize=7, frameon=False); ax.grid(lw=0.6)
-    fig.tight_layout(); fig.savefig(FIGS / "fig06_triage.png"); plt.close(fig)
+    ax.legend(fontsize=7, frameon=False)
+    ax.grid(lw=0.6)
+    fig.tight_layout()
+    fig.savefig(FIGS / "fig06_triage.png")
+    plt.close(fig)
 
 
 if __name__ == "__main__":

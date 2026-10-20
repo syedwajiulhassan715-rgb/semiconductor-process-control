@@ -93,9 +93,7 @@ def audit_sensors(
                 "iqr": float(np.percentile(present, 75) - np.percentile(present, 25))
                 if n
                 else np.nan,
-                "skew": float(sps.skew(present))
-                if n > 2 and np.ptp(present) > 0
-                else np.nan,
+                "skew": float(sps.skew(present)) if n > 2 and np.ptp(present) > 0 else np.nan,
                 "excess_kurtosis": float(sps.kurtosis(present))
                 if n > 3 and np.ptp(present) > 0
                 else np.nan,

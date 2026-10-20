@@ -36,9 +36,7 @@ def add_time_context(runs: pd.DataFrame) -> pd.DataFrame:
     out["date"] = ts.dt.normalize()
     out["iso_year"] = iso["year"].astype(int)
     out["iso_week"] = iso["week"].astype(int)
-    out["year_week"] = (
-        out["iso_year"].astype(str) + "-W" + out["iso_week"].astype(str).str.zfill(2)
-    )
+    out["year_week"] = out["iso_year"].astype(str) + "-W" + out["iso_week"].astype(str).str.zfill(2)
     out["hour"] = ts.dt.hour
     out["day_of_week"] = ts.dt.day_name()
     out["shift"] = out["hour"].map(_shift_label)
@@ -109,9 +107,7 @@ def build_clean(
     return frame, retained, impute_log
 
 
-def standardise(
-    frame: pd.DataFrame, sensors: list[str], baseline: np.ndarray
-) -> pd.DataFrame:
+def standardise(frame: pd.DataFrame, sensors: list[str], baseline: np.ndarray) -> pd.DataFrame:
     """Robust z-scores (median / MAD) against a baseline window."""
     base = frame.loc[baseline, sensors]
     med = base.median()

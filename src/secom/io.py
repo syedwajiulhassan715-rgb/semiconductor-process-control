@@ -77,9 +77,7 @@ def load_raw(raw_dir: str | Path) -> SecomData:
 
     values = np.genfromtxt(data_path, delimiter=" ", filling_values=np.nan)
     if values.shape != (N_RUNS, N_SENSORS):
-        raise ValueError(
-            f"expected secom.data to be {(N_RUNS, N_SENSORS)}, got {values.shape}"
-        )
+        raise ValueError(f"expected secom.data to be {(N_RUNS, N_SENSORS)}, got {values.shape}")
 
     labels = pd.read_csv(
         label_path,
@@ -89,9 +87,7 @@ def load_raw(raw_dir: str | Path) -> SecomData:
         quotechar='"',
     )
     if len(labels) != len(values):
-        raise ValueError(
-            f"row mismatch: secom.data has {len(values)}, labels has {len(labels)}"
-        )
+        raise ValueError(f"row mismatch: secom.data has {len(values)}, labels has {len(labels)}")
     if not set(labels["label"].unique()) <= {-1, 1}:
         raise ValueError(f"unexpected label values: {sorted(labels['label'].unique())}")
 

@@ -37,9 +37,7 @@ def c4(n: int) -> float:
         return np.nan
     from scipy.special import gammaln
 
-    return float(
-        np.sqrt(2.0 / (n - 1)) * np.exp(gammaln(n / 2.0) - gammaln((n - 1) / 2.0))
-    )
+    return float(np.sqrt(2.0 / (n - 1)) * np.exp(gammaln(n / 2.0) - gammaln((n - 1) / 2.0)))
 
 
 # Variables charts
@@ -157,9 +155,7 @@ def ewma(
             prev = lam * xi + (1 - lam) * prev
             z[i] = prev
     t = np.arange(1, len(x) + 1)
-    width = L * limits.sigma * np.sqrt(
-        (lam / (2 - lam)) * (1 - (1 - lam) ** (2 * t))
-    )
+    width = L * limits.sigma * np.sqrt((lam / (2 - lam)) * (1 - (1 - lam) ** (2 * t)))
     return pd.DataFrame(
         {
             "value": x,
@@ -315,9 +311,13 @@ def p_chart(
     table["below_lcl"] = table["p"] < table["lcl"]
     table["violation"] = table["above_ucl"] | table["below_lcl"]
 
+    verdict = (
+        "overdispersed, Laney p-prime limits applied"
+        if overdispersed
+        else "consistent with binomial variation"
+    )
     notes = [
-        f"sigma_z = {sigma_z:.3f} "
-        f"({'overdispersed, Laney p-prime limits applied' if overdispersed else 'consistent with binomial variation'})",
+        f"sigma_z = {sigma_z:.3f} ({verdict})",
         f"chi-square dispersion test: chi2 = {chi2:.1f} on {dof} df, p = {dispersion_p:.3g}",
     ]
     return PChartResult(

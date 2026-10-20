@@ -18,7 +18,6 @@ from secom.stats import (
     screen_sensors,
 )
 
-
 # stats
 
 
@@ -39,7 +38,7 @@ class TestBenjaminiHochberg:
         assert np.all(benjamini_hochberg(p) >= p - 1e-12)
 
     def test_nan_excluded_from_the_correction_count(self) -> None:
-        p =np.array([0.01, 0.02, np.nan, 0.03])
+        p = np.array([0.01, 0.02, np.nan, 0.03])
         q = benjamini_hochberg(p)
         assert np.isnan(q[2])
         assert np.allclose(q[[0, 1, 3]], benjamini_hochberg(np.array([0.01, 0.02, 0.03])))
@@ -49,9 +48,7 @@ class TestBenjaminiHochberg:
 
     def test_controls_fdr_under_the_global_null(self) -> None:
         rng = np.random.default_rng(2)
-        rejections = [
-            (benjamini_hochberg(rng.uniform(0, 1, 400)) < 0.05).sum() for _ in range(200)
-        ]
+        rejections = [(benjamini_hochberg(rng.uniform(0, 1, 400)) < 0.05).sum() for _ in range(200)]
         # all p-values are null, so most runs should reject nothing
         assert np.mean(np.array(rejections) > 0) < 0.10
 
@@ -78,10 +75,10 @@ class TestEffectSizes:
 
     def test_cliffs_delta_is_robust_where_cohens_d_is_not(self) -> None:
         rng = np.random.default_rng(5)
-        a = np.r_[rng.normal(1, 0.3, 200), [500.0]]   # one big outlier
+        a = np.r_[rng.normal(1, 0.3, 200), [500.0]]  # one big outlier
         b = rng.normal(0, 0.3, 200)
         assert cliffs_delta(a, b) > 0.9
-        assert cohens_d(a, b) < 0.5          # outlier inflates the SD
+        assert cohens_d(a, b) < 0.5  # outlier inflates the SD
 
 
 class TestCompareGroups:
@@ -114,12 +111,12 @@ def audit_frame() -> tuple[pd.DataFrame, list[str]]:
     base = rng.normal(0, 1, n)
     frame = pd.DataFrame(
         {
-            "S001": base,                                  # retained
-            "S002": np.zeros(n),                           # constant
-            "S003": np.zeros(n),                           # constant, duplicate of S002
-            "S004": base.copy(),                           # exact duplicate of S001
-            "S005": base * 2 + 1,                          # perfectly correlated
-            "S006": rng.normal(5, 2, n),                   # retained
+            "S001": base,  # retained
+            "S002": np.zeros(n),  # constant
+            "S003": np.zeros(n),  # constant, duplicate of S002
+            "S004": base.copy(),  # exact duplicate of S001
+            "S005": base * 2 + 1,  # perfectly correlated
+            "S006": rng.normal(5, 2, n),  # retained
             "S007": np.where(np.arange(n) < 40, rng.normal(size=n), np.nan),  # sparse
         }
     )
@@ -182,9 +179,8 @@ class TestAudit:
 
 class TestMissingnessVsOutcome:
     def test_detects_informative_missingness(self) -> None:
-        n = 400
         is_fail = np.r_[np.ones(100, bool), np.zeros(300, bool)]
-        col = np.where(is_fail, np.nan, 1.0)   # only missing on fails
+        col = np.where(is_fail, np.nan, 1.0)  # only missing on fails
         out = missingness_vs_outcome(pd.DataFrame({"S001": col}), ["S001"], is_fail)
         assert out["p_fisher"].iloc[0] < 1e-10
 
