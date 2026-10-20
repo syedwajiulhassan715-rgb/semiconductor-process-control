@@ -93,9 +93,7 @@ def audit_sensors(
                 "iqr": float(np.percentile(present, 75) - np.percentile(present, 25))
                 if n
                 else np.nan,
-                "skew": float(sps.skew(present))
-                if n > 2 and np.ptp(present) > 0
-                else np.nan,
+                "skew": float(sps.skew(present)) if n > 2 and np.ptp(present) > 0 else np.nan,
                 "excess_kurtosis": float(sps.kurtosis(present))
                 if n > 3 and np.ptp(present) > 0
                 else np.nan,
@@ -115,7 +113,7 @@ def audit_sensors(
     for s in sensors:
         if audit.at[s, "disposition"]:
             continue
-        h = audit.at[s, "_hash"]
+        h = str(audit.at[s, "_hash"])
         if h in seen:
             audit.at[s, "disposition"] = "drop_duplicate"
             audit.at[s, "duplicate_of"] = seen[h]

@@ -26,8 +26,9 @@
 
 
 // --- Query: SourceFolder ---------------------------------------------------
-// Change this one line to relocate the whole model.
-"C:\Users\syedw\Downloads\September 2026\semiconductor-process-control\data\powerbi"
+// Change this one line to relocate the whole model. Use the absolute path to
+// data/powerbi in your clone, with no trailing backslash.
+"C:\path\to\semiconductor-process-control\data\powerbi"
 
 
 // --- Query: fnLoadCsv ------------------------------------------------------
@@ -226,7 +227,12 @@ let
             {"below_lcl", type logical},
             {"violation", type logical},
             {"naive_ucl", type number},
-            {"naive_violation", type logical}
+            {"naive_violation", type logical},
+            // Phase I-centred limits: the reference [p-chart UCL] must match.
+            {"center_phase1", type number},
+            {"lcl_phase1", type number},
+            {"ucl_phase1", type number},
+            {"violation_phase1", type logical}
         },
         "en-US"
     )

@@ -1,0 +1,70 @@
+# Analysis configuration for the SECOM pipeline.
+#
+# Every value here is the default baked into src/secom/config.py, and a test
+# keeps the two identical. Copy this file and pass it with
+#   secom run --config my.yaml
+# to rerun the analysis under different choices. Unknown keys are an error.
+# The decision numbers (D2, D5, ...) refer to DECISIONS.md.
+
+# One seed for model fits, CV splits, the CUSUM simulation and permutations.
+seed: 20080719
+# Significance level for every FDR-controlled screen (Benjamini-Hochberg q).
+alpha: 0.05
+
+audit:
+  max_missing_frac: 0.20   # D2: any value in [0.175, 0.456] drops the same 32
+  near_duplicate_r: 0.999  # D4
+
+clean:
+  impute_window: 25        # D5: trailing rolling-median window, in runs
+
+regimes:
+  pre_baseline_max_week: 34
+  baseline_weeks: [35, 39] # D7: Phase I baseline, inclusive ISO weeks
+
+cusum:                     # D12
+  shift_ratio: 2.0         # p1 = shift_ratio * p0
+  target_arl0: 500.0       # in-control average run length, in runs
+  n_sim: 3000              # simulated paths for calibrating h
+  max_run: 8000            # length of each simulated path
+
+sensors:
+  watchlist_regime_top: 25 # D19: top regime movers added to the watchlist
+  watchlist_max: 40
+  large_effect_delta: 0.5  # D14: |Cliff's delta| counted as a large shift
+
+model:
+  train_frac: 0.70         # D16: forward chronological split
+  cv_folds: 10             # shuffled-CV contrast
+  n_perm: 60               # label permutations for the null distribution
+  rolling_origin_fracs: [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85]
+  triage_top_k_pct: [5, 10, 15, 20, 25, 30, 40, 50]
+
+mspc:                      # D26-D29: PCA T2 / SPE on the Phase I baseline
+  variance_target: 0.80    # cumulative baseline variance the components explain
+  alpha: 0.01              # D27: per-chart false-alarm rate (not 0.0027)
+  cv_folds: 5              # contiguous time blocks for out-of-fold limits
+  sensitivity_targets: [0.5, 0.6, 0.7, 0.8, 0.9, 0.95]
+  alpha_sensitivity: [0.05, 0.02, 0.01, 0.005]
+  top_n: 15                # sensors listed in the contribution ranking
+  drift_highlight: 0.3     # |drift rho| counted as drifting in fig08
+
+shift_simulation:          # D30-D31: detection power under known step shifts
+  shift_ratios: [0.25, 0.33, 0.5, 0.67, 1.0, 1.5, 2.0, 3.0, 4.0]
+  include_observed_ratios: true
+  horizons: [120, 400, 1567] # runs within which detection is scored
+  n_sim: 4000              # simulated streams per shift ratio
+  improvement_ratio: 0.5   # lower CUSUM designed for p1 = 0.5 * p0
+  k: 3.0                   # Shewhart limit width, in sigmas
+  g_alpha: 0.0027          # D11: g-chart false-alarm probability
+
+changepoint:               # D32-D33: Bernoulli change-point MLE
+  min_segment: 30          # shortest segment either side of a split, in runs
+  n_perm: 2000             # permutations per test (plain and day-block)
+  n_boot: 1000             # bootstrap replicates for the location interval
+  ci_level: 0.95
+  max_changepoints: 5      # binary segmentation cap
+
+figures:
+  format: png              # png | svg (svg needs no compiled backend)
+  dpi: 130

@@ -21,8 +21,16 @@ from secom.spc import (
 
 # c4 values from Montgomery, Intro to SQC, Appendix VI
 C4_PUBLISHED = {
-    2: 0.7979, 3: 0.8862, 4: 0.9213, 5: 0.9400, 6: 0.9515,
-    7: 0.9594, 8: 0.9650, 9: 0.9693, 10: 0.9727, 25: 0.9896,
+    2: 0.7979,
+    3: 0.8862,
+    4: 0.9213,
+    5: 0.9400,
+    6: 0.9515,
+    7: 0.9594,
+    8: 0.9650,
+    9: 0.9693,
+    10: 0.9727,
+    25: 0.9896,
 }
 
 
@@ -43,10 +51,7 @@ def test_d2_table_is_increasing() -> None:
 
 class TestMovingRangeSigma:
     def test_is_unbiased_for_normal_data(self) -> None:
-        est = [
-            moving_range_sigma(np.random.default_rng(s).normal(100, 5, 400))
-            for s in range(200)
-        ]
+        est = [moving_range_sigma(np.random.default_rng(s).normal(100, 5, 400)) for s in range(200)]
         # mean over 200 samples should be close to the true sigma
         assert np.mean(est) == pytest.approx(5.0, rel=0.02)
 
@@ -141,7 +146,7 @@ class TestEwma:
         lim = ControlLimits(center=0.0, sigma=1.0, lcl=-3, ucl=3, n_baseline=100)
         out = ewma(np.zeros(200), lim, lam=0.2, L=2.7)
         width = out["ucl"] - out["center"]
-        assert width.iloc[0] < width.iloc[-1]          # time-varying, not flat
+        assert width.iloc[0] < width.iloc[-1]  # time-varying, not flat
         asymptote = 2.7 * np.sqrt(0.2 / 1.8)
         assert width.iloc[-1] == pytest.approx(asymptote, rel=1e-6)
 
@@ -204,7 +209,9 @@ class TestPChart:
         res = p_chart(d, n, baseline=base)
         assert res.p_bar == pytest.approx(d[:20].sum() / n[:20].sum())
         # sigma_z used all 40 subgroups, so it differs from the baseline-only value
-        assert res.sigma_z != pytest.approx(p_chart(d, n, baseline=base, dispersion_subset=base).sigma_z)
+        assert res.sigma_z != pytest.approx(
+            p_chart(d, n, baseline=base, dispersion_subset=base).sigma_z
+        )
 
     def test_rejects_mismatched_inputs(self) -> None:
         with pytest.raises(ValueError, match="same shape"):
@@ -262,8 +269,8 @@ class TestGChart:
 class TestBernoulliCusum:
     def test_weights_have_the_right_signs(self) -> None:
         res = bernoulli_cusum(np.array([True, False]), p0=0.03, p1=0.06, h=2.0)
-        assert res.table["increment"].iloc[0] > 0   # a fail pushes up
-        assert res.table["increment"].iloc[1] < 0   # a pass pays down
+        assert res.table["increment"].iloc[0] > 0  # a fail pushes up
+        assert res.table["increment"].iloc[1] < 0  # a pass pays down
 
     def test_statistic_is_non_negative(self) -> None:
         rng = np.random.default_rng(17)

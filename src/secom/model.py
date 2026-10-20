@@ -55,9 +55,7 @@ class EvalResult:
             "ROC_AUC": self.roc_auc,
             "PR_AUC": self.pr_auc,
             "prevalence": self.prevalence,
-            "lift_over_prevalence": self.pr_auc / self.prevalence
-            if self.prevalence
-            else np.nan,
+            "lift_over_prevalence": self.pr_auc / self.prevalence if self.prevalence else np.nan,
         }
 
 
@@ -199,7 +197,7 @@ def permutation_null(
     observed = evaluate_forward(X, y, {"m": model}, train_frac=train_frac)[0].roc_auc
     null = np.empty(n_perm)
     for i in range(n_perm):
-        null[i] = evaluate_forward(
-            X, rng.permutation(y), {"m": model}, train_frac=train_frac
-        )[0].roc_auc
+        null[i] = evaluate_forward(X, rng.permutation(y), {"m": model}, train_frac=train_frac)[
+            0
+        ].roc_auc
     return float(observed), null

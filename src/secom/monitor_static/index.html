@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SECOM Replay Monitor</title>
+<style>
+  :root {
+    --bg: #f6f5f2;
+    --surface: #ffffff;
+    --surface-2: #f0eeea;
+    --border: #e2dfd9;
+    --ink: #1b1b1b;
+    --ink-2: #4a4a4a;
+    --muted: #8a8a8a;
+    --accent: #b3412c;
+    --accent-soft: rgba(179, 65, 44, 0.10);
+    --good: #2f6f4e;
+    --good-soft: rgba(47, 111, 78, 0.10);
+    --blue: #3a5f9e;
+    --band-pre: rgba(179, 65, 44, 0.06);
+    --band-base: rgba(47, 111, 78, 0.07);
+    --band-post: rgba(58, 95, 158, 0.06);
+    --grid: #ebe9e4;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 1px rgba(0, 0, 0, 0.03);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121212;
+      --surface: #1b1b1b;
+      --surface-2: #232323;
+      --border: #2e2e2e;
+      --ink: #ececec;
+      --ink-2: #bdbdbd;
+      --muted: #8f8f8f;
+      --accent: #e0684f;
+      --accent-soft: rgba(224, 104, 79, 0.14);
+      --good: #5bb08a;
+      --good-soft: rgba(91, 176, 138, 0.14);
+      --blue: #7b9ed6;
+      --band-pre: rgba(224, 104, 79, 0.08);
+      --band-base: rgba(91, 176, 138, 0.08);
+      --band-post: rgba(123, 158, 214, 0.08);
+      --grid: #2a2a2a;
+      --shadow: none;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #121212;
+    --surface: #1b1b1b;
+    --surface-2: #232323;
+    --border: #2e2e2e;
+    --ink: #ececec;
+    --ink-2: #bdbdbd;
+    --muted: #8f8f8f;
+    --accent: #e0684f;
+    --accent-soft: rgba(224, 104, 79, 0.14);
+    --good: #5bb08a;
+    --good-soft: rgba(91, 176, 138, 0.14);
+    --blue: #7b9ed6;
+    --band-pre: rgba(224, 104, 79, 0.08);
+    --band-base: rgba(91, 176, 138, 0.08);
+    --band-post: rgba(123, 158, 214, 0.08);
+    --grid: #2a2a2a;
+    --shadow: none;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 14px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .num { font-variant-numeric: tabular-nums; }
+
+  header {
+    position: sticky; top: 0; z-index: 5;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .bar {
+    max-width: 1440px; margin: 0 auto;
+    padding: 12px 16px;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px;
+  }
+  .brand { display: flex; flex-direction: column; margin-right: auto; min-width: 0; }
+  .brand h1 { font-size: 15px; margin: 0; font-weight: 650; letter-spacing: -0.01em; }
+  .brand p { margin: 0; color: var(--muted); font-size: 12px; }
+
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  button, select, input {
+    font: inherit; color: var(--ink);
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 7px; height: 32px; padding: 0 10px;
+  }
+  button { cursor: pointer; font-weight: 550; }
+  button:hover { background: var(--surface-2); }
+  button:focus-visible, select:focus-visible, input:focus-visible {
+    outline: 2px solid var(--blue); outline-offset: 1px;
+  }
+  button.primary { background: var(--ink); color: var(--surface); border-color: var(--ink); min-width: 84px; }
+  button.primary:hover { opacity: 0.88; background: var(--ink); }
+  button.icon { width: 32px; padding: 0; }
+  input[type="number"] { width: 84px; }
+  .group { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
+
+  .progress { height: 3px; background: var(--surface-2); }
+  .progress > div { height: 100%; width: 0; background: var(--accent); transition: width 0.15s linear; }
+
+  main {
+    max-width: 1440px; margin: 0 auto; padding: 16px;
+    display: grid; gap: 16px;
+    grid-template-columns: minmax(0, 1fr) 340px;
+  }
+  @media (max-width: 1060px) { main { grid-template-columns: minmax(0, 1fr); } }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; box-shadow: var(--shadow);
+    padding: 14px 16px; min-width: 0;
+  }
+  .card h2 {
+    font-size: 13px; margin: 0; font-weight: 650;
+    display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  }
+  .card h2 small { font-weight: 450; color: var(--muted); font-size: 12px; }
+  .card .sub { margin: 2px 0 10px; color: var(--muted); font-size: 12px; }
+
+  .stack { display: grid; gap: 16px; min-width: 0; align-content: start; }
+  .pair { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 760px) { .pair { grid-template-columns: 1fr; } }
+
+  .chart { position: relative; height: 260px; }
+  .chart.sm { height: 200px; }
+
+  .now {
+    display: grid; gap: 1px; background: var(--border);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+  }
+  @media (max-width: 760px) { .now { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .tile { background: var(--surface); padding: 12px 14px; min-width: 0; }
+  .tile .k { color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .tile .v { font-size: 22px; font-weight: 650; letter-spacing: -0.02em; margin-top: 2px; }
+  .tile .d { color: var(--muted); font-size: 12px; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tile.alarm .v { color: var(--accent); }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px;
+    background: var(--surface-2); color: var(--ink-2); white-space: nowrap;
+  }
+  .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .pill.ok { background: var(--good-soft); color: var(--good); }
+  .pill.bad { background: var(--accent-soft); color: var(--accent); }
+  .pill.base { background: var(--good-soft); color: var(--good); }
+  .pill.pre { background: var(--accent-soft); color: var(--accent); }
+  .pill.post { background: rgba(58, 95, 158, 0.12); color: var(--blue); }
+
+  .alarm-list { display: grid; gap: 10px; }
+  .alarm {
+    border: 1px solid var(--border); border-left: 3px solid var(--accent);
+    border-radius: 8px; padding: 10px 12px; background: var(--surface);
+  }
+  .alarm.improvement { border-left-color: var(--good); }
+  .alarm.closed { border-left-color: var(--border); opacity: 0.75; }
+  .alarm .t { font-weight: 600; font-size: 13px; display: flex; justify-content: space-between; gap: 8px; }
+  .alarm .m { color: var(--ink-2); font-size: 12.5px; margin: 3px 0 8px; }
+  .alarm .meta { color: var(--muted); font-size: 12px; }
+  .alarm form { display: flex; gap: 6px; }
+  .alarm form input { flex: 1; min-width: 0; height: 30px; }
+  .alarm form button { height: 30px; }
+  .empty { color: var(--muted); font-size: 12.5px; padding: 6px 0; }
+
+  .log { max-height: 280px; overflow: auto; margin: 0; padding: 0; list-style: none; font-size: 12.5px; }
+  .log li { display: grid; grid-template-columns: 52px 1fr; gap: 8px; padding: 6px 0; border-top: 1px solid var(--border); }
+  .log li:first-child { border-top: 0; }
+  .log .r { color: var(--muted); }
+  .log .e-raised { color: var(--accent); font-weight: 600; }
+  .log .e-acknowledged { color: var(--good); font-weight: 600; }
+  .log .e-repeat { color: var(--muted); }
+
+  dl.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; font-size: 12.5px; }
+  dl.kv dt { color: var(--muted); }
+  dl.kv dd { margin: 0; text-align: right; }
+
+  .note { font-size: 12px; color: var(--muted); margin: 8px 0 0; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; border: 1px solid; }
+  .legend .sw-pre { background: var(--band-pre); border-color: var(--accent); }
+  .legend .sw-base { background: var(--band-base); border-color: var(--good); }
+  .legend .sw-post { background: var(--band-post); border-color: var(--blue); }
+  .err { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; display: none; }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="brand">
+      <h1>SECOM line · replay monitor</h1>
+      <p>Bernoulli CUSUM against the Phase I baseline, g-chart alongside, S060 on watch</p>
+    </div>
+    <div class="controls">
+      <button id="play" class="primary" type="button" aria-label="Play">Play</button>
+      <button id="step" type="button" title="Advance one run">Step</button>
+      <label class="group">Speed
+        <select id="speed" aria-label="Runs per second">
+          <option value="5">5 runs/s</option>
+          <option value="10">10 runs/s</option>
+          <option value="20">20 runs/s</option>
+          <option value="50">50 runs/s</option>
+          <option value="100">100 runs/s</option>
+        </select>
+      </label>
+      <form id="seek" class="group">Run
+        <input id="seek-run" type="number" min="0" step="1" aria-label="Jump to run">
+        <button type="submit">Jump</button>
+      </form>
+      <button id="reset" type="button" title="Back to run 0 and clear acknowledgements">Reset</button>
+      <button id="theme" class="icon" type="button" aria-label="Toggle colour theme" title="Toggle theme">◐</button>
+    </div>
+  </div>
+  <div class="progress" aria-hidden="true"><div id="progress"></div></div>
+</header>
+
+<main>
+  <div class="stack">
+    <section class="now" aria-label="Current state">
+      <div class="tile"><div class="k">Run</div><div class="v num" id="t-run">0</div><div class="d num" id="t-ts">not started</div></div>
+      <div class="tile"><div class="k">Week · phase</div><div class="v num" id="t-week">–</div><div class="d" id="t-phase">–</div></div>
+      <div class="tile" id="tile-cusum"><div class="k">CUSUM / h</div><div class="v num" id="t-cusum">0.00</div><div class="d num" id="t-h">–</div></div>
+      <div class="tile"><div class="k">Fail rate, last 50</div><div class="v num" id="t-recent">–</div><div class="d num" id="t-rate">–</div></div>
+    </section>
+
+    <section class="card">
+      <h2>Bernoulli CUSUM <small id="cusum-design"></small></h2>
+      <p class="sub">Accumulates log-likelihood per run; signals above h and resets (D13). An alarm stays open until acknowledged.</p>
+      <div class="chart"><canvas id="c-cusum" aria-label="CUSUM chart" role="img"></canvas></div>
+      <div class="legend">
+        <span><i class="sw-pre"></i>pre-baseline W29–34</span>
+        <span><i class="sw-base"></i>Phase I baseline W35–39</span>
+        <span><i class="sw-post"></i>Phase II W40–42</span>
+      </div>
+    </section>
+
+    <div class="pair">
+      <section class="card">
+        <h2>g-chart <small>passing runs since last failure</small></h2>
+        <p class="sub" id="g-sub">Improvement detector at the Phase I rate.</p>
+        <div class="chart sm"><canvas id="c-gchart" aria-label="g-chart" role="img"></canvas></div>
+        <p class="note" id="g-note"></p>
+      </section>
+      <section class="card">
+        <h2><span id="w-title">S060</span> <small>watchlist · Phase I individuals limits</small></h2>
+        <p class="sub">Informational: an association that survived the time-confound gate, not a root cause.</p>
+        <div class="chart sm"><canvas id="c-watch" aria-label="Watchlist sensor chart" role="img"></canvas></div>
+        <p class="note num" id="w-note"></p>
+        <p class="note">Axis clipped to the limits ± 1.5× their width; red points are failed runs.</p>
+      </section>
+    </div>
+  </div>
+
+  <aside class="stack">
+    <section class="card">
+      <h2>Open alarms <span class="pill ok" id="alarm-pill">none</span></h2>
+      <p class="sub">Acknowledge after investigating; add a note for the shift log.</p>
+      <div class="alarm-list" id="alarms"><div class="empty">No open alarms.</div></div>
+    </section>
+    <section class="card">
+      <h2>Alarm log</h2>
+      <ul class="log" id="log"><li class="empty" style="display:block">Nothing logged yet.</li></ul>
+    </section>
+    <section class="card">
+      <h2>Design</h2>
+      <dl class="kv num" id="design"></dl>
+    </section>
+  </aside>
+</main>
+<div class="err" id="err" role="alert"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const fmtPct = (x) => (x == null ? "–" : (100 * x).toFixed(1) + "%");
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+
+  let design = null;
+  let history = [];
+  let state = null;
+  let playing = false;
+  let busy = false;
+  let carry = 0;
+  let timer = null;
+  const charts = {};
+
+  // ---- API ---------------------------------------------------------------
+  async function api(path, body) {
+    const opts = body === undefined ? {} : {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+    };
+    const res = await fetch(path, opts);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || res.statusText);
+    return data;
+  }
+  function showError(msg) {
+    const el = $("err"); el.textContent = msg; el.style.display = "block";
+    clearTimeout(showError.t); showError.t = setTimeout(() => (el.style.display = "none"), 3500);
+  }
+
+  // ---- charts ------------------------------------------------------------
+  const phaseBands = {
+    id: "phaseBands",
+    beforeDatasetsDraw(chart) {
+      if (!design) return;
+      const { ctx, chartArea: a, scales: { x } } = chart;
+      const fill = { "0": css("--band-pre"), "1": css("--band-base"), "2": css("--band-post") };
+      ctx.save();
+      for (const p of design.phases) {
+        const x0 = Math.max(x.getPixelForValue(p.start - 0.5), a.left);
+        const x1 = Math.min(x.getPixelForValue(p.end + 0.5), a.right);
+        if (x1 <= x0) continue;
+        ctx.fillStyle = fill[p.label[0]] || "transparent";
+        ctx.fillRect(x0, a.top, x1 - x0, a.bottom - a.top);
+      }
+      ctx.restore();
+    },
+  };
+
+  function baseOptions(yTitle) {
+    const grid = css("--grid"), muted = css("--muted");
+    return {
+      animation: false, responsive: true, maintainAspectRatio: false, parsing: false, normalized: true,
+      interaction: { mode: "nearest", axis: "x", intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: (items) => {
+              const p = history[items[0].parsed.x - 1];
+              return p ? `Run ${p.run} · ${p.year_week} · ${p.timestamp.replace("T", " ")}` : "";
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          type: "linear", min: 1, max: design ? design.n_runs : 1,
+          grid: { color: grid }, ticks: { color: muted, maxTicksLimit: 9 },
+          title: { display: true, text: "run", color: muted },
+        },
+        y: { grid: { color: grid }, ticks: { color: muted }, title: { display: true, text: yTitle, color: muted } },
+      },
+    };
+  }
+
+  function hline(y, color, dash) {
+    return {
+      data: [{ x: 1, y }, { x: design.n_runs, y }], borderColor: color, borderWidth: 1.2,
+      borderDash: dash || [5, 4], pointRadius: 0, fill: false, order: 9,
+    };
+  }
+
+  function buildCharts() {
+    for (const c of Object.values(charts)) c.destroy();
+    const ink = css("--ink"), accent = css("--accent"), good = css("--good"), muted = css("--muted");
+    const g = design.gchart;
+
+    const cOpts = baseOptions("CUSUM");
+    cOpts.scales.y.min = 0;
+    cOpts.scales.y.suggestedMax = Math.ceil((design.h + 0.6) * 2) / 2;
+    charts.cusum = new Chart($("c-cusum"), {
+      type: "line",
+      data: { datasets: [
+        { label: "CUSUM", data: [], borderColor: ink, borderWidth: 1.1, pointRadius: 0, stepped: false },
+        { label: "signal", data: [], showLine: false, pointStyle: "triangle", rotation: 180, pointRadius: 5, pointBackgroundColor: accent, pointBorderColor: accent },
+        { label: "h", ...hline(design.h, accent) },
+      ] },
+      options: cOpts,
+      plugins: [phaseBands],
+    });
+
+    const gOpts = baseOptions("runs since fail");
+    gOpts.scales.y.min = 0;
+    gOpts.scales.y.suggestedMax = g.ucl * 1.08;
+    charts.gchart = new Chart($("c-gchart"), {
+      type: "line",
+      data: { datasets: [
+        { label: "open gap", data: [], borderColor: muted, borderWidth: 1, pointRadius: 0 },
+        { label: "closed gap", data: [], showLine: false, pointRadius: 2.5, pointBackgroundColor: ink, pointBorderColor: ink },
+        { label: "UCL", ...hline(g.ucl, good) },
+        { label: "centre", ...hline(g.center, muted, [2, 3]) },
+      ] },
+      options: gOpts,
+      plugins: [phaseBands],
+    });
+
+    // Clip the axis around the limits: a few extreme readings would otherwise
+    // flatten the band the chart exists to show.
+    const wOpts = baseOptions(design.watch_sensor);
+    const span = design.watch_ucl - design.watch_lcl;
+    wOpts.scales.y.min = design.watch_lcl - 1.5 * span;
+    wOpts.scales.y.max = design.watch_ucl + 1.5 * span;
+    wOpts.scales.y.ticks.includeBounds = false;
+    charts.watch = new Chart($("c-watch"), {
+      type: "line",
+      data: { datasets: [
+        { label: design.watch_sensor, data: [], borderColor: muted, borderWidth: 0.8, pointRadius: 0 },
+        { label: "fail", data: [], showLine: false, pointRadius: 2.5, pointBackgroundColor: accent, pointBorderColor: accent },
+        { label: "UCL", ...hline(design.watch_ucl, ink) },
+        { label: "LCL", ...hline(design.watch_lcl, ink) },
+        { label: "centre", ...hline(design.watch_center, muted, [2, 3]) },
+      ] },
+      options: wOpts,
+      plugins: [phaseBands],
+    });
+    appendPoints(history, true);
+  }
+
+  function appendPoints(points, rebuild) {
+    const c = charts.cusum.data.datasets, g = charts.gchart.data.datasets, w = charts.watch.data.datasets;
+    if (rebuild) for (const ds of [c[0], c[1], g[0], g[1], w[0], w[1]]) ds.data = [];
+    for (const p of points) {
+      c[0].data.push({ x: p.run, y: p.cusum });
+      if (p.cusum_signal) c[1].data.push({ x: p.run, y: p.cusum });
+      g[0].data.push({ x: p.run, y: p.gap });
+      if (p.closed_gap != null) g[1].data.push({ x: p.run, y: p.closed_gap });
+      w[0].data.push({ x: p.run, y: p.watch_value });
+      if (p.is_fail) w[1].data.push({ x: p.run, y: p.watch_value });
+    }
+    for (const ch of Object.values(charts)) ch.update("none");
+  }
+
+  // ---- rendering -----------------------------------------------------------
+  function phaseClass(label) {
+    return { "0": "pre", "1": "base", "2": "post" }[(label || "")[0]] || "";
+  }
+
+  function renderDesign() {
+    const d = design, g = d.gchart;
+    $("cusum-design").textContent = `p₀ ${fmtPct(d.p0)} → p₁ ${fmtPct(d.p1)} · h = ${d.h.toFixed(3)} · ARL₀ ≈ ${Math.round(d.arl0)} runs`;
+    $("t-h").textContent = `h = ${d.h.toFixed(2)}`;
+    $("w-title").textContent = d.watch_sensor;
+    $("g-sub").textContent = `Improvement detector at the Phase I rate: UCL ${g.ucl.toFixed(0)}, centre ${g.center.toFixed(1)}.`;
+    $("g-note").textContent = g.lower_limit_active ? "" :
+      `Lower limit inactive: at p₀ = ${fmtPct(d.p0)} no single short gap can breach it, so this chart signals improvement only (D11).`;
+    $("seek-run").max = d.n_runs;
+    const rows = [
+      ["Baseline weeks", `W${d.baseline_weeks[0]}–${d.baseline_weeks[1]}`],
+      ["p₀ (Phase I)", fmtPct(d.p0)], ["p₁ (doubling)", fmtPct(d.p1)],
+      ["Decision interval h", d.h.toFixed(3)], ["In-control ARL₀", `${Math.round(d.arl0)} runs`],
+      ["g-chart UCL", `${g.ucl.toFixed(0)} runs`],
+      [`${d.watch_sensor} limits`, `${d.watch_lcl.toFixed(2)} … ${d.watch_ucl.toFixed(2)}`],
+      ["Runs in stream", d.n_runs.toLocaleString()],
+    ];
+    $("design").innerHTML = rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("");
+  }
+
+  function render() {
+    const s = state, p = s.current;
+    $("progress").style.width = `${(100 * s.cursor) / s.n_runs}%`;
+    $("t-run").textContent = `${s.cursor.toLocaleString()} / ${s.n_runs.toLocaleString()}`;
+    $("t-ts").textContent = p ? p.timestamp.replace("T", " ") : "not started";
+    $("t-week").textContent = p ? p.year_week.replace(/^\d{4}-/, "") : "–";
+    $("t-phase").innerHTML = p ? `<span class="pill ${phaseClass(p.phase)}">${esc(p.phase.replace(/^\d - /, ""))}</span>` : "–";
+    $("t-cusum").textContent = p ? p.cusum.toFixed(2) : "0.00";
+    $("tile-cusum").classList.toggle("alarm", !!(p && p.cusum_signal));
+    $("t-recent").textContent = p ? fmtPct(p.recent_fail_rate) : "–";
+    $("t-rate").textContent = p ? `cumulative ${fmtPct(p.fail_rate)} · p₀ ${fmtPct(design.p0)}` : "–";
+
+    const w = s.watch;
+    $("w-note").textContent = w.recent_n
+      ? `${w.recent_beyond} of the last ${w.recent_n} readings beyond limits (chance: ${w.expected_by_chance.toFixed(2)}). Current robust z ${p && p.watch_z != null ? p.watch_z.toFixed(2) : "–"}.`
+      : "";
+
+    const open = s.open_alarms;
+    const pill = $("alarm-pill");
+    pill.textContent = open.length ? `${open.length} open` : "none";
+    pill.className = "pill " + (open.length ? "bad" : "ok");
+
+    const all = s.alarms.slice().reverse();
+    const box = $("alarms");
+    const focused = document.activeElement && document.activeElement.closest(".alarm");
+    if (!focused) {
+      box.innerHTML = all.length ? all.slice(0, 6).map(alarmCard).join("") : '<div class="empty">No alarms raised yet.</div>';
+    }
+
+    const log = s.log.slice().reverse();
+    $("log").innerHTML = log.length
+      ? log.map((e) => `<li><span class="r num">#${e.run}</span><span><span class="e-${esc(e.event)}">${esc(e.event)}</span> · ${esc(e.source)} #${e.alarm_id} — ${esc(e.message)}</span></li>`).join("")
+      : '<li class="empty" style="display:block">Nothing logged yet.</li>';
+  }
+
+  function alarmCard(a) {
+    const kind = a.kind === "improvement" ? "improvement" : "";
+    const closed = a.status !== "open";
+    const title = a.source === "cusum" ? "Yield degradation" : "Yield improvement";
+    const meta = `raised run ${a.raised_run} · ${a.raised_at.replace("T", " ")} · ${a.signals} signal${a.signals === 1 ? "" : "s"}`;
+    const foot = closed
+      ? `<div class="meta">acknowledged at run ${a.acknowledged_run}${a.note ? " — " + esc(a.note) : ""}</div>`
+      : `<form data-id="${a.id}"><input name="note" placeholder="note (optional)" maxlength="500" aria-label="Acknowledgement note"><button type="submit">Acknowledge</button></form>`;
+    return `<div class="alarm ${kind} ${closed ? "closed" : ""}">
+      <div class="t"><span>#${a.id} ${title}</span><span class="pill ${closed ? "" : kind ? "ok" : "bad"}">${closed ? "acknowledged" : "open"}</span></div>
+      <div class="m">${esc(a.message)}</div><div class="meta">${esc(meta)}</div>${closed ? foot : `<div style="margin-top:8px">${foot}</div>`}
+    </div>`;
+  }
+
+  // ---- state flow ------------------------------------------------------------
+  function accept(s, rebuild) {
+    if (rebuild || s.since === 0) history = s.history.slice();
+    else history = history.slice(0, s.since).concat(s.history);
+    state = s;
+    if (rebuild || s.since === 0) appendPoints(history, true);
+    else appendPoints(s.history, false);
+    render();
+    if (s.finished && playing) setPlaying(false);
+  }
+
+  async function post(path, body, rebuild) {
+    busy = true;
+    try {
+      const since = rebuild ? 0 : history.length;
+      accept(await api(path, { ...body, since }), rebuild);
+    } catch (e) {
+      showError(e.message);
+      setPlaying(false);
+    } finally {
+      busy = false;
+    }
+  }
+
+  function setPlaying(on) {
+    playing = on && !(state && state.finished);
+    $("play").textContent = playing ? "Pause" : "Play";
+    $("play").setAttribute("aria-label", playing ? "Pause" : "Play");
+    clearInterval(timer);
+    if (playing) {
+      carry = 0;
+      timer = setInterval(tick, 100);
+    }
+  }
+
+  function tick() {
+    if (busy) return;
+    carry += Number($("speed").value) / 10;
+    const n = Math.floor(carry);
+    if (n < 1) return;
+    carry -= n;
+    post("/api/step", { n }, false);
+  }
+
+  // ---- events ---------------------------------------------------------------
+  $("play").addEventListener("click", () => setPlaying(!playing));
+  $("step").addEventListener("click", () => { setPlaying(false); post("/api/step", { n: 1 }, false); });
+  $("reset").addEventListener("click", () => { setPlaying(false); post("/api/reset", {}, true); });
+  $("seek").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const run = parseInt($("seek-run").value, 10);
+    if (Number.isNaN(run)) return;
+    setPlaying(false);
+    post("/api/seek", { run }, true);
+  });
+  $("alarms").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const form = e.target.closest("form");
+    if (!form) return;
+    const note = form.elements.note.value;
+    document.activeElement && document.activeElement.blur();
+    post("/api/ack", { alarm_id: Number(form.dataset.id), note }, false);
+  });
+  $("theme").addEventListener("click", () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("secom-monitor-theme", root.dataset.theme); } catch (_) {}
+    buildCharts();
+  });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+    if (!document.documentElement.dataset.theme) buildCharts();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.target.closest("input, select, textarea")) return;
+    if (e.code === "Space") { e.preventDefault(); setPlaying(!playing); }
+    if (e.key === "ArrowRight") { setPlaying(false); post("/api/step", { n: 1 }, false); }
+  });
+
+  // ---- boot -------------------------------------------------------------------
+  (async () => {
+    // URL options: ?theme=light|dark, ?speed=<runs/s>, ?autoplay=1
+    const params = new URLSearchParams(location.search);
+    const forced = params.get("theme");
+    if (forced === "light" || forced === "dark") document.documentElement.dataset.theme = forced;
+    else {
+      try {
+        const saved = localStorage.getItem("secom-monitor-theme");
+        if (saved) document.documentElement.dataset.theme = saved;
+      } catch (_) {}
+    }
+    try {
+      design = await api("/api/design");
+      const sel = $("speed");
+      const want = String(params.get("speed") || design.default_speed);
+      if (![...sel.options].some((o) => o.value === want)) sel.add(new Option(`${want} runs/s`, want));
+      sel.value = want;
+      renderDesign();
+      const s = await api("/api/state?since=0");
+      buildCharts();
+      accept(s, true);
+      if (params.get("autoplay") === "1") setPlaying(true);
+    } catch (e) {
+      showError("Could not reach the monitor server: " + e.message);
+    }
+  })();
+})();
+</script>
+</body>
+</html>

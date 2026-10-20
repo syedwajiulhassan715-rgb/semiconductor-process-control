@@ -8,6 +8,25 @@ version = "1.0.0"
 description = "Production test monitoring and process control analysis on the UCI SECOM fab dataset"
 readme = "README.md"
 requires-python = ">=3.11"
+keywords = [
+    "statistical-process-control",
+    "spc",
+    "cusum",
+    "semiconductor",
+    "manufacturing",
+    "secom",
+    "power-bi",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Manufacturing",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
 dependencies = [
     "numpy>=2.0",
     "pandas>=2.2",
@@ -15,14 +34,76 @@ dependencies = [
     "scikit-learn>=1.5",
     "matplotlib>=3.8",
     "statsmodels>=0.14",
+    "pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0"]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff==0.17.1",  # keep in step with .pre-commit-config.yaml
+    "mypy>=1.10",
+    "types-PyYAML",
+    "pandas-stubs",
+    "pre-commit>=3.7",
+]
+
+[project.scripts]
+secom = "secom.cli:main"
+
+[project.urls]
+Repository = "https://github.com/syedwajiulhassan715-rgb/semiconductor-process-control"
+Report = "https://github.com/syedwajiulhassan715-rgb/semiconductor-process-control/blob/main/reports/ENGINEERING_REPORT.md"
+Dataset = "https://doi.org/10.24432/C54305"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+secom = ["monitor_static/*.html"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+
+[tool.coverage.run]
+source = ["secom"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+exclude_also = ["if __name__ == .__main__.:", "if TYPE_CHECKING:"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src/secom"]
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unreachable = true
+no_implicit_optional = true
+strict_equality = true
+check_untyped_defs = true
+# scipy, sklearn and statsmodels ship no type information
+ignore_missing_imports = true
+
+# The pipeline, config and CLI are new code: hold them to full annotation.
+[[tool.mypy.overrides]]
+module = ["secom.config", "secom.cli", "secom.fetch", "secom.pipeline.*"]
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "NPY", "SIM"]
+ignore = [
+    "E741",  # `l`/`I` names are conventional in the stats formulas
+]
+
+[tool.ruff.lint.per-file-ignores]
+# the wrappers put src/ on sys.path before importing secom
+"scripts/*.py" = ["E402"]

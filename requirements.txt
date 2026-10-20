@@ -4,4 +4,5 @@ scipy>=1.13
 scikit-learn>=1.5
 matplotlib>=3.8
 statsmodels>=0.14
+pyyaml>=6.0
 pytest>=8.0

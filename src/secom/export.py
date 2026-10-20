@@ -1,15 +1,16 @@
 """Star schema CSV export for Power BI.
 
-    dim_date ---<  fact_run  >--- dim_shift
-                      |
-                      v
-              fact_measurement >--- dim_sensor
-              fact_yield_week
+    dim_date ---< fact_run ---< fact_measurement >--- dim_sensor
 
-Relationships are one-to-many, single direction (dimension -> fact).
+    fact_yield_week, fact_gchart   (standalone reference tables)
 
-fact_measurement only has the watchlist sensors (~40, about 60k rows) instead of
-all 412. The full cleaned table is written out separately.
+Relationships are one-to-many, single direction (dimension -> fact). Shift is a
+column on fact_run rather than its own dimension. powerbi/README.md has the
+full model setup.
+
+fact_measurement only has the watchlist sensors (at most 40; 35 on this data,
+54,845 rows) instead of all 412. The full cleaned table is written out
+separately.
 """
 
 from __future__ import annotations
@@ -41,9 +42,7 @@ def build_dim_date(runs: pd.DataFrame) -> pd.DataFrame:
             "day_name": dates.strftime("%a"),
             "iso_year": iso["year"].to_numpy(),
             "iso_week": iso["week"].to_numpy(),
-            "year_week": [
-                f"{y}-W{w:02d}" for y, w in zip(iso["year"], iso["week"], strict=True)
-            ],
+            "year_week": [f"{y}-W{w:02d}" for y, w in zip(iso["year"], iso["week"], strict=True)],
             "is_weekend": dates.dayofweek >= 5,
             "has_production": [d in produced for d in dates],
         }
@@ -149,8 +148,16 @@ def build_fact_measurement(
         value_name="value",
     )
     long = long.merge(
-        lim[["baseline_center", "baseline_sigma", "baseline_lcl", "baseline_ucl",
-             "baseline_median", "baseline_mad"]],
+        lim[
+            [
+                "baseline_center",
+                "baseline_sigma",
+                "baseline_lcl",
+                "baseline_ucl",
+                "baseline_median",
+                "baseline_mad",
+            ]
+        ],
         left_on="sensor_id",
         right_index=True,
         how="left",
