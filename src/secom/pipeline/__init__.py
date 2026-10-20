@@ -38,6 +38,11 @@ sensor_screen   drift (sensor_id / drift_rho / drift_q); regime, fail_all,
 model           models_df; rolling_df; perm_null: ndarray; obs_auc: float;
                 triage_df; forward_cut: int (first test row);
                 forward_scores: ndarray of test-window scores
+multivariate    mspc_model: PCAModel fitted on Phase I; mspc_scores: T2 / SPE
+                per run; mspc_alarms: alarm flags under the CV limits
+shift_simulation power_table: detection probability and delay per scheme
+                and shift ratio
+changepoint     changepoint_fit: change location, interval and segment rates
 """
 
 from __future__ import annotations
