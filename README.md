@@ -5,8 +5,10 @@
 **Statistical process control and root-cause screening on 1,567 production runs of real fab data**
 
 <p>
-<img src="https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white" alt="Python 3.11+">
-<img src="https://img.shields.io/badge/tests-87%20passing-2E7D4F" alt="87 tests passing">
+<a href="https://github.com/syedwajiulhassan715-rgb/semiconductor-process-control/actions/workflows/ci.yml"><img src="https://github.com/syedwajiulhassan715-rgb/semiconductor-process-control/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+<img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-3776AB?logo=python&logoColor=white" alt="Python 3.11 | 3.12 | 3.13">
+<img src="https://img.shields.io/badge/tests-87-2E7D4F" alt="87 tests">
+<a href="https://docs.astral.sh/ruff/"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Ruff"></a>
 <img src="https://img.shields.io/badge/pipeline-deterministic%20%C2%B7%2023s-2E7D4F" alt="Deterministic, 23 seconds">
 <img src="https://img.shields.io/badge/dataset-UCI%20SECOM-6E7B8B" alt="UCI SECOM">
 <img src="https://img.shields.io/badge/BI-Power%20BI%20star%20schema-C43E1C" alt="Power BI star schema">
@@ -16,7 +18,7 @@
 <a href="reports/ENGINEERING_REPORT.md"><b>Engineering report</b></a> ·
 <a href="DECISIONS.md"><b>Decision log (D1–D24)</b></a> ·
 <a href="reports/results.json"><b>results.json</b></a> ·
-<a href="data/powerbi/"><b>Star schema</b></a>
+<a href="powerbi/README.md"><b>Power BI setup</b></a>
 </p>
 
 </div>
@@ -199,8 +201,21 @@ pytest -q                           # 87 tests
 ```
 
 `data/raw/` is gitignored; the fetch script is its only source, and it skips
-files already present. To import `secom` outside the test suite — a notebook,
-say — install the package itself: `pip install -e ".[dev]"`.
+files already present. Without it, the three real-data tests skip and the
+remaining 84 still run.
+
+### Development
+
+```bash
+pip install -e ".[dev]"     # editable install + pytest + ruff
+ruff check . && ruff format --check .
+pytest -q
+```
+
+The editable install also makes `secom` importable outside the test suite, from
+a notebook for example. CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml))
+runs lint plus the full suite, including the real-data tests, on Python 3.11,
+3.12 and 3.13.
 
 ## Layout
 
@@ -209,7 +224,8 @@ src/secom/
   io.py       raw load; hard-errors if the matrix is not 1567x590
   audit.py    sensor disposition, missingness-vs-outcome testing
   clean.py    causal imputation (trailing rolling-median cascade)
-  spc.py      p-chart / Laney p', g-chart, Bernoulli CUSUM + ARL calibration
+  spc.py      p-chart / Laney p', g-chart, Bernoulli CUSUM + ARL calibration;
+              also individuals/MR, EWMA and Nelson rules (tested library API)
   stats.py    rank-based screening, Cliff's delta, Benjamini-Hochberg
   model.py    shuffled vs forward-chronological evaluation
   export.py   Power BI star schema
@@ -217,6 +233,7 @@ scripts/
   00_fetch_data.py   dataset download
   run_analysis.py    end-to-end: raw in, star schema and figures out
 powerbi/
+  README.md          model setup: load, relationships, measures, validation
   measures.dax       control limits, baselines, interactive triage
   queries.pq         explicit Power Query types (locale + null-inference traps)
 tests/               87 tests across spc / stats / audit / clean
@@ -226,7 +243,8 @@ reports/
   figures/                fig01..fig06
 data/
   raw/         gitignored - fetched
-  processed/   cleaned wide table, audit, imputation log, confound check
+  processed/   cleaned wide table, audit, imputation log, model results,
+               confound check
   powerbi/     dim_date, dim_sensor, fact_run, fact_measurement,
                fact_yield_week, fact_gchart
 ```
@@ -248,7 +266,8 @@ Python and DAX on a stated rule (**D20**): control limits are DAX so they
 respond to slicers; centre lines use `REMOVEFILTERS` so an excursion cannot
 redefine normal as you drill into it; anything depending on the Phase I baseline
 is precomputed in Python so filter context cannot silently move it. The DAX
-measures were verified against the Python chart to 8×10⁻¹⁷.
+measures were verified against the Python chart to 8×10⁻¹⁷; the setup and
+the validation procedure are in [`powerbi/README.md`](powerbi/README.md).
 
 ---
 
