@@ -2,5 +2,11 @@ data/raw/
 __pycache__/
 *.pyc
 .pytest_cache/
+.ruff_cache/
 .venv/
 *.egg-info/
+build/
+dist/
+# intermediate caches, never shipped
+data/processed/_*.pkl
+data/processed/_*.json

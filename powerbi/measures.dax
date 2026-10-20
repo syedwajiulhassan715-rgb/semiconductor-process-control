@@ -13,7 +13,9 @@
 //    limits computed from all shifts and every point looks in control.
 //    fact_yield_week stays in the model as the Python reference -- at the
 //    unfiltered weekly grain [p-chart UCL] must equal
-//    fact_yield_week[ucl_phase1] (verified to 1e-16 by scripts/run_analysis.py).
+//    fact_yield_week[ucl_phase1]. scripts/run_analysis.py exports that column
+//    as the reference; the check itself is done in Power BI Desktop (max
+//    absolute difference 8e-17 -- see powerbi/README.md, "Validating").
 //    Note the reference is the *_phase1 columns, not [ucl]: the plain [ucl]
 //    column is the retrospective stability chart, centred on all 14 weeks
 //    (p-bar = 0.0664), which answers "was this process ever in control?".
