@@ -1,0 +1,39 @@
+/* Palette shared with the report figures and the replay monitor. */
+:root {
+  --secom-ink: #1b1b1b;
+  --secom-accent: #b3412c;
+  --secom-good: #2f6f4e;
+}
+
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color: var(--secom-ink);
+  --md-primary-fg-color--light: #3a3a3a;
+  --md-primary-fg-color--dark: #000000;
+  --md-accent-fg-color: var(--secom-accent);
+  --md-typeset-a-color: var(--secom-accent);
+}
+
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #202124;
+  --md-primary-fg-color--light: #2b2c30;
+  --md-primary-fg-color--dark: #16171a;
+  --md-accent-fg-color: #e07a62;
+  --md-typeset-a-color: #e07a62;
+}
+
+/* Report figures are drawn on white; keep them legible in dark mode. */
+[data-md-color-scheme="slate"] .md-typeset img[src*="figures/"] {
+  background: #ffffff;
+  border-radius: 4px;
+  padding: 4px;
+}
+
+.md-typeset table:not([class]) {
+  font-size: 0.72rem;
+}
+
+/* Keep identifiers (stage names, config keys) on one line in tables. */
+.md-typeset table:not([class]) td:nth-child(2) code,
+.md-typeset table:not([class]) td:first-child code {
+  white-space: nowrap;
+}

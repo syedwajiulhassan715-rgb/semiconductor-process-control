@@ -42,14 +42,17 @@ jobs:
         run: pip install -e ".[dev]"
 
       # The real-data tests skip without data/raw/, so fetch it once and cache it.
-      - name: Cache SECOM raw data
+      # data/raw/tep/ holds the Tennessee Eastman validation files.
+      - name: Cache raw data
         uses: actions/cache@v4
         with:
           path: data/raw
-          key: secom-raw-${{ hashFiles('src/secom/fetch.py') }}
+          key: raw-data-${{ hashFiles('src/secom/fetch.py') }}
 
-      - name: Fetch SECOM
-        run: secom fetch
+      - name: Fetch SECOM and Tennessee Eastman
+        run: |
+          secom fetch
+          secom fetch --dataset tep
 
       - name: Run tests with coverage
         run: pytest -q --cov=secom --cov-report=term --cov-report=xml
@@ -66,6 +69,7 @@ jobs:
         run: |
           secom stages
           secom run --no-figures
+          secom validate tep --no-figures
 
       - name: Upload coverage report
         if: matrix.python-version == '3.12'
@@ -73,3 +77,22 @@ jobs:
         with:
           name: coverage-xml
           path: coverage.xml
+
+  docker:
+    name: docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: secom-process-control:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Smoke test
+        run: |
+          docker run --rm secom-process-control:ci stages
+          docker run --rm secom-process-control:ci --version

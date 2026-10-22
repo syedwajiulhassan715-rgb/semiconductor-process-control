@@ -47,6 +47,16 @@ dev = [
     "pandas-stubs",
     "pre-commit>=3.7",
 ]
+# The site is built from source with griffe, so the docs extra does not need
+# the analysis dependencies installed. `ruff` formats rendered signatures.
+docs = [
+    "mkdocs>=1.6,<2",
+    "mkdocs-material>=9.5",
+    "mkdocstrings[python]>=0.26",
+    "mkdocs-gen-files>=0.5",
+    "mkdocs-literate-nav>=0.6",
+    "ruff==0.17.1",
+]
 
 [project.scripts]
 secom = "secom.cli:main"
