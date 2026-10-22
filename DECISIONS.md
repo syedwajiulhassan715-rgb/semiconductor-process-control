@@ -375,5 +375,313 @@ The refactor was accepted only because it changed no output: every CSV and
 rendering.
 
 **If wrong:** the cost is indirection. A reader now follows the analysis across
-nine short modules instead of reading one script top to bottom. The stage
+a dozen short modules instead of reading one script top to bottom. The stage
 docstrings and `secom stages -v` are there to keep that cheap.
+
+---
+
+## Multivariate monitoring
+
+### D26. PCA model: Phase I autoscaling, and only retained components are inverted
+
+The PCA model is fitted on the Phase I baseline only (717 runs) and held fixed.
+Sensors are scaled by their baseline mean and SD, not by median / MAD. The T²
+and SPE limit theory is built on the sample mean and covariance, and 8 sensors
+have a baseline MAD of zero, so a robust z is undefined for them. S075 is
+constant within the baseline and is left out, leaving 411 sensors.
+
+The baseline matrix has full rank (411 < 717), but its smallest eigenvalue is
+3.5×10⁻¹¹. T² is therefore computed from the retained components only (condition
+number 18.9), never from the inverse of the full covariance.
+
+**If wrong:** a T² built on the full inverse is dominated by directions with
+near-zero variance, so floating-point noise would decide which runs alarm.
+
+### D27. Limits from out-of-fold baseline quantiles, at α = 0.01
+
+The F / Beta limits for T² and the Jackson–Mudholkar limit for SPE assume
+multivariate normality. On this data they put **15.8% of baseline runs** over
+the limit, against a nominal 2% or less. Under those limits the chart flags 86%
+of the degraded period and 83% of Phase II, and the flags have no relationship
+with failure (p = 0.84).
+
+Each baseline run is instead scored by a model fitted on the other four
+contiguous time blocks. Each limit is set at the (1 − α) quantile of those
+out-of-fold scores. In-sample scores would understate SPE, because the
+components were fitted to those very rows.
+
+α is 0.01 per chart, not the 3-sigma 0.0027 used for the univariate charts. The
+out-of-fold statistics have excess kurtosis of about 712. Their 99.73% quantile
+rests on about two of 717 runs, so it can't be estimated (it lands at T² = 8,328,
+which is set by a few gross outliers).
+
+**If wrong:** with the theoretical limits, the chart's apparent sensitivity is
+pure miscalibration. A smaller α is not usable until there is a longer baseline
+to estimate the tail from. Both limit schemes are kept in `results.json` so the
+contrast stays visible.
+
+### D28. Number of components: 80% of baseline variance, with a sensitivity sweep
+
+A = 81 components, the smallest number explaining at least 80% of baseline
+variance. The spectrum is flat (the first component explains 6.7%, and 105
+eigenvalues exceed 1), so no elbow rule applies. The analysis is re-run at
+50–95% (A = 30 to 150):
+
+- The out-of-fold baseline alarm rate stays at 1.1–1.3%.
+- The theoretical baseline rate stays at 13.4–16.0%.
+- The degraded-period failure association stays at p = 0.001–0.012.
+- Phase II never shows an association (p = 0.62 throughout).
+
+**If wrong:** nothing in the verdict depends on A within that range. A outside
+it was not tested.
+
+### D29. The PCA chart is not adopted as the yield monitor
+
+With calibrated limits it alarms on 6.9% of runs in the period when yield was
+worst. The alarms are mostly single-sensor outliers: the top 15 contributors
+have a median excess kurtosis of 276, and in 38% of alarmed runs one sensor is
+more than half the SPE. A sensor's contribution is unrelated to its drift
+(ρ = −0.02). The alarms mark failures only in the degraded period (p = 0.011),
+which does not survive correcting for the three windows tested and shifts with
+α (p = 0.092 at α = 0.05, 0.50 at α = 0.005).
+
+The run-to-first-signal is not compared with the CUSUM as a race. The PCA
+chart's 1.1% per-run false-alarm rate implies an in-control ARL of about 90
+runs, against the CUSUM's 509, so its earlier first signal (run 4 vs 12)
+reflects a chart that alarms more often.
+
+S060 ranks 259th of 411 in SPE contribution, so contribution plots do not
+rediscover the one sensor that survived the confound gate.
+
+**If wrong:** if the degraded-period association is real, the chart is a useful
+excursion flag in a degraded process. That is a reason to keep it as a
+secondary flag on the heavy-tailed sensors, with out-of-fold limits, and
+re-test it against new data. It is not a reason to replace the CUSUM.
+
+---
+
+## Detection power and change points
+
+### D30. Detection power is simulated on the real chart designs and checked against exact values
+
+`shift_simulation` runs every scheme over the same simulated pass/fail streams,
+with the Phase I rate, weekly subgroup sizes, Laney σ_z, CUSUM thresholds and
+g-chart limits taken from the pipeline's own artifacts. Nothing is re-derived
+for the simulation.
+
+The conventions are stated and fixed:
+- **Zero-state.** The shift is present from run 1.
+- **Subgroups.** Weekly subgroups cycle through the 14 observed weekly sizes,
+  starting at a random week for each stream.
+- **g-chart.** It runs live, signalling as soon as the count of passes exceeds
+  the UCL instead of waiting for the next failure. This is the same decision
+  rule, made earlier.
+- **Common random numbers.** One uniform matrix is shared across shift ratios.
+  This makes the detection probability of the one-sided CUSUM exactly monotone
+  in the shift, and a test asserts that.
+
+Every Shewhart detection probability also has an exact binomial value, and the
+stage reports the largest simulated-vs-exact gap (0.0146 against a worst-case
+MC standard error of 0.0079).
+
+**If wrong:** if the simulation used idealised designs instead of the deployed
+ones, it would measure a different system from the one recommended. Zero-state
+timing flatters the weekly charts (their first subgroup is wholly post-shift),
+so if that convention is wrong, the CUSUM's advantage is understated, not
+overstated.
+
+### D31. CUSUMs are also compared at matched false-alarm probability
+
+As designed (ARL₀ ≈ 500 runs), the upper CUSUM false-alarms in 96.6% of
+1,567-run campaigns, against 7.3% for the weekly p-chart. Comparing them as
+deployed would partly compare false-alarm budgets.
+
+So each one-sided CUSUM is also run with h set so that P(false alarm within the
+campaign) equals that of the chart it is compared with:
+- the upper CUSUM is matched to the p-chart, using the exact binomial value;
+- the lower CUSUM is matched to the g-chart, using a simulated value from
+  independent streams.
+
+A CUSUM signals within the horizon exactly when its path maximum exceeds h, so
+h is a quantile of simulated in-control path maxima. There is no search, and no
+reuse of the evaluation streams.
+
+**If wrong:** without matching, the report would credit the CUSUM with 99% vs
+50% detection at a doubling. Matched, it is 70% vs 50%. The conclusion survives
+the matching, but the size of the advantage does not.
+
+### D32. A detection must point in the direction of the shift
+
+A detection counts only signals in the direction of the shift:
+- **After a fall in the fail rate:** a p-chart point above the UCL, or an upper
+  CUSUM alarm, is a false alarm, not a detection.
+- **In control (ratio 1):** every signal counts, as a false alarm.
+
+**If wrong:** counting any signal as a detection credits two-sided charts with
+improvement "detections" that are really upper-limit false alarms. That would
+have reported a non-zero improvement-detection rate for a p-chart whose lower
+limit is zero in every week, which is the exact blind spot this analysis exists
+to measure.
+
+### D33. The change point is the exact MLE; further splits need a day-block permutation p < α
+
+The single change point is found by profile likelihood over every split, with
+a minimum segment of 30 runs. This is exact, so no PELT or other search
+approximation is needed at n = 1,567.
+
+Significance is assessed by permutation, two ways:
+- **Run-level:** shuffles individual runs, which assumes runs are exchangeable.
+- **Day-block:** shuffles whole calendar days, which keeps within-day clustering
+  intact.
+
+The weekly rates are overdispersed (D9), so run-level exchangeability is
+optimistic: the day-block null's 95th percentile of the maximum LR is 18.07,
+against 10.42 for the run-level null. Binary segmentation therefore splits only
+while the day-block p-value is below α = 0.05.
+
+The location interval is a basic parametric bootstrap from the fitted
+two-rate model.
+
+**If wrong:**
+- **Run-level stopping rule:** binary segmentation would be more willing to
+  accept spurious secondary changes driven by bad days.
+- **Bootstrap interval:** it ignores the same clustering, so it is narrower
+  than the truth. It is reported as an interval for the location, not as
+  evidence about how many changes there are.
+
+---
+
+## Replay monitor
+
+### D34. The monitor reads committed outputs and runs on the standard library
+
+`secom monitor` loads its design from `reports/results.json` and
+`data/powerbi/` instead of rerunning the pipeline. It starts in about a second,
+and it shows exactly the design the report quotes: p₀, p₁ and h come from the
+same `results.json` the write-up cites.
+
+The server is `http.server` and the page loads one pinned chart library
+(Chart.js 4.4.1) from a CDN. A Streamlit or Dash app would mean a heavy
+dependency tree for a single page, and on locked-down machines (this project
+already hits a blocked matplotlib DLL) every compiled extension is another
+thing that may refuse to load.
+
+Correctness is pinned by test, not by eye. The online CUSUM reproduces
+`spc.bernoulli_cusum` bit for bit on random streams, with and without reset,
+and matches the exported `fact_run.cusum` to the CSV's 4×10⁻¹⁶ rounding.
+
+**If wrong:** the monitor goes stale if someone changes the config and does not
+rerun `secom run`. The loader names the files it read, and the page displays the
+design it is running.
+
+### D35. The statistic resets on signal; the alarm does not
+
+D13 resets the CUSUM the moment it signals, which is right for the statistic.
+An engineer is still investigating, though, so the monitor separates the two:
+
+- The **statistic** resets and keeps watching.
+- The **alarm** stays open until acknowledged, with an optional note.
+- **Repeat signals** while an alarm is open count against that alarm instead of
+  raising new ones.
+
+On this campaign the difference is large. The CUSUM signals on 21 runs. Left
+unacknowledged, they are one alarm raised at run 12. Raising 21 alarms for one
+degraded period is how a line learns to ignore its monitor.
+
+**If wrong:** an acknowledged-too-early alarm could hide a second, unrelated
+excursion behind the first. Acknowledgement closes the alarm, so the next signal
+opens a fresh one; nothing is suppressed after an acknowledgement.
+
+### D36. The monitor's g-chart uses the Phase I rate; S060 never alarms
+
+The exported `fact_gchart` uses the all-data rate (p = 6.64%, UCL 96). That
+chart answers the retrospective question. A monitor must be designed on the
+baseline it protects, so the monitor's g-chart uses p₀ = 3.07% (UCL 212), the
+same Phase I design as the CUSUM. It signals improvement as soon as the open gap
+crosses the UCL, without waiting for the next failure. Over this campaign it
+never signals: the longest gap is 99 runs. The page says so and states the
+inactive lower limit (D11).
+
+S060 is shown against its Phase I individuals limits, but it is informational
+only. 278 of 1,567 readings (17.7%) are outside limits that expect 0.27%,
+because the sensor drifts. An alarm would fire continually. The panel reports
+recent exceedances against chance instead, which is what a watchlist is for.
+
+**If wrong:** if S060 is causal after all, the designed experiment D24 calls for
+is the way to promote it to an alarm, with limits set on a stable process. That
+is not something to decide from this panel.
+
+---
+
+## Validation
+
+### D37. Validate on Tennessee Eastman, as a separate command
+
+SECOM has no fault labels, so no analysis of SECOM alone can show that a chart
+detects a real fault. The Tennessee Eastman benchmark has 21 faults injected
+at known samples and a published PCA result on the same files. Running the
+repo's own `secom.mspc` and chart code on it, unchanged, tests the
+implementation where the answer is known.
+
+The validation is `secom validate tep`, not a pipeline stage, so the SECOM
+analysis never depends on a second dataset. The TEP files are fetched into
+`data/raw/tep/` with their SHA-256 digests recorded, and they are never
+committed. Only the derived `reports/validation/tep_results.json` is.
+
+**If wrong:** if TEP were a poor proxy, a pass would prove little. That is why
+the claim is limited to implementation correctness and the cause of the
+calibration failure (report §9, "What this validation does not establish"),
+not SECOM detection power.
+
+### D38. Benchmark settings: A = 11, α = 0.01, textbook limits primary
+
+A = 11 retained components and α = 0.01 per chart are the settings commonly
+attributed to the Chiang, Russell & Braatz (2001) PCA benchmark on these
+files. The textbook F and Jackson–Mudholkar limits are primary because they
+are what that benchmark uses. The benchmark detection rates are a
+transcription from secondary reproductions, not checked against the book, so
+the tests assert only qualitative facts (easy faults caught, faults 3/9/15
+not, fault 4 an SPE fault). They do not assert the table.
+
+The cross-validated limits from the SECOM multivariate stage are reported
+alongside but are not primary here. On TEP they improve SPE (7.1% → 2.2%
+false alarms on `d00_te`) but worsen T² (1.7% → 4.7%), so neither scheme
+dominates.
+
+**If wrong:** if the benchmark used another A, the detection comparison
+shifts. The sensitivity table (A = 5 to 24) shows mean detection over the
+detectable faults moving only 0.61–0.65 (T²) and 0.76–0.84 (SPE), and the
+qualitative facts hold throughout.
+
+### D39. TEP univariate charts use the overall SD, not the moving range
+
+The family of 52 per-variable charts with moving-range sigma alarms on 100%
+of the independent normal run. The median lag-1 autocorrelation is 0.55, the
+moving range then underestimates sigma (median 0.40 of the SD), and the
+shortfall tracks the autocorrelation (Spearman ρ = −0.94). With the overall
+training SD, the same Šidák family alarms on 4.0%.
+
+Šidák rather than Bonferroni because it is exact for independent charts and
+still conservative under the positive dependence these variables have. An
+FDR rule doesn't fit, because an alarm is a per-sample decision over the
+whole family, and the family-wise rate is the quantity an operator lives
+with.
+
+**If wrong:** the SD estimate is inflated by any slow drift within the
+training run, which widens the limits. On this training file that cost is
+small: univariate detection matches SPE on most faults.
+
+### D40. The moving-range finding is recorded for SECOM, not acted on here
+
+SECOM baseline sensors are close to independent (median lag-1
+autocorrelation 0.04), so the TEP failure mode does not apply. Their
+moving-range sigma is still a median 0.78 of the SD, because of heavy tails
+and level shifts, and the per-sensor Phase I limits (D20) are correspondingly
+narrower than SD-based limits would be. That is recorded, not changed: it
+alters no conclusion in the report, and changing the sensor limits would
+change committed outputs outside this validation's scope.
+
+**If wrong:** a beyond-limits count on SECOM sensor charts (e.g. S060 on the
+watchlist) overstates excursions relative to an SD-based chart.
+`[Violation Ratio vs Chance]` in the DAX already warns against reading raw
+counts.
