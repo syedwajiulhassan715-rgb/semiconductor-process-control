@@ -11,6 +11,8 @@ repos:
       - id: end-of-file-fixer
         exclude: ^(data/|reports/results\.json$|reports/figures/)
       - id: check-yaml
+        # mkdocs.yml uses !!python/name tags; check syntax without constructing them
+        args: [--unsafe]
       - id: check-toml
       - id: check-merge-conflict
       - id: check-added-large-files

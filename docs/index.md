@@ -49,6 +49,43 @@ regenerated into `reports/results.json` by a deterministic pipeline.
 
     [Can failures be predicted →](report.md#5-can-failures-be-predicted-per-run)
 
+-   **A multivariate PCA chart does not do better**
+
+    ---
+
+    Textbook T² and SPE limits alarm on 15.8% of baseline runs against a
+    nominal 2%. Calibrated limits flag mostly heavy-tailed outliers.
+
+    [Multivariate monitoring →](report.md#6-multivariate-monitoring-pca-t²-and-spe)
+
+-   **The p-chart's blindness is measured, not argued**
+
+    ---
+
+    At a doubling, a CUSUM at matched false-alarm risk signals within 400
+    runs 70% of the time against 50% for the p-chart; for improvement the
+    p-chart never signals.
+
+    [Detection power →](report.md#7-detection-power-measured-rather-than-argued)
+
+-   **The change is at run 375, inside the baseline boundary**
+
+    ---
+
+    The exact change-point estimate (21 Aug, W34) supports the week-35
+    baseline, but the post-change rate of 4.27% suggests p₀ is optimistic.
+
+    [Change point →](report.md#8-where-the-yield-changed-located-at-run-grain)
+
+-   **The implementation is validated on known faults**
+
+    ---
+
+    On Tennessee Eastman the PCA code reproduces published detection rates
+    and its textbook limits hold, so SECOM's failure is in the data.
+
+    [Validation →](report.md#9-validation-on-a-benchmark-with-known-faults)
+
 </div>
 
 ## Where to go next
