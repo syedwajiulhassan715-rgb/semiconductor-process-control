@@ -50,15 +50,15 @@
   },
   "model": {
     "n_components": 11,
-    "explained": 0.541546300946092,
+    "explained": 0.5415463009460922,
     "kaiser_components": 18,
     "variance_rule_components": 24,
     "t2_limit_F": 25.690202412564012,
     "t2_limit_phase1_beta": 24.38537832896582,
-    "spe_limit": 41.687624608494964,
+    "spe_limit": 41.687624608494936,
     "spe_limit_method": "jackson_mudholkar",
-    "cv_t2_limit": 21.98247529249251,
-    "cv_spe_limit": 47.25308947169299
+    "cv_t2_limit": 21.982475292492467,
+    "cv_spe_limit": 47.25308947169307
   },
   "false_alarms": {
     "d00_te": {
@@ -1386,7 +1386,7 @@
     "nominal_per_chart": 0.01,
     "tep": {
       "n_components": 11,
-      "explained": 0.541546300946092,
+      "explained": 0.5415463009460922,
       "in_sample": {
         "t2": 0.006,
         "spe": 0.004,
@@ -1421,7 +1421,7 @@
     },
     "secom": {
       "n_components": 81,
-      "explained": 0.8007086883987895,
+      "explained": 0.8007086883987896,
       "in_sample": {
         "t2": 0.1199442119944212,
         "spe": 0.07531380753138076,
@@ -1442,7 +1442,7 @@
   "sensitivity": [
     {
       "n_components": 5,
-      "explained": 0.3437709363214669,
+      "explained": 0.3437709363214671,
       "secom_variance_rule": false,
       "d00_te_far_t2": 0.029166666666666667,
       "d00_te_far_spe": 0.035416666666666666,
@@ -1451,7 +1451,7 @@
     },
     {
       "n_components": 9,
-      "explained": 0.485659075512824,
+      "explained": 0.4856590755128243,
       "secom_variance_rule": false,
       "d00_te_far_t2": 0.020833333333333332,
       "d00_te_far_spe": 0.052083333333333336,
@@ -1460,7 +1460,7 @@
     },
     {
       "n_components": 11,
-      "explained": 0.541546300946092,
+      "explained": 0.5415463009460922,
       "secom_variance_rule": false,
       "d00_te_far_t2": 0.016666666666666666,
       "d00_te_far_spe": 0.07083333333333333,
@@ -1469,7 +1469,7 @@
     },
     {
       "n_components": 15,
-      "explained": 0.6369880291485256,
+      "explained": 0.6369880291485257,
       "secom_variance_rule": false,
       "d00_te_far_t2": 0.01875,
       "d00_te_far_spe": 0.103125,
@@ -1478,7 +1478,7 @@
     },
     {
       "n_components": 20,
-      "explained": 0.737049791094312,
+      "explained": 0.7370497910943123,
       "secom_variance_rule": false,
       "d00_te_far_t2": 0.022916666666666665,
       "d00_te_far_spe": 0.13333333333333333,
@@ -1487,7 +1487,7 @@
     },
     {
       "n_components": 24,
-      "explained": 0.8050586753401388,
+      "explained": 0.8050586753401391,
       "secom_variance_rule": true,
       "d00_te_far_t2": 0.015625,
       "d00_te_far_spe": 0.165625,

@@ -60,5 +60,5 @@ def fetch_tep(raw_dir: str | Path, *, log: Callable[[str], None] = print) -> lis
     tep_dir = Path(raw_dir) / "tep"
     paths = _download(TEP_BASE_URL, TEP_FILES, tep_dir, log)
     lines = [f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}" for p in paths]
-    (tep_dir / "SHA256SUMS").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    (tep_dir / "SHA256SUMS").write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
     return paths

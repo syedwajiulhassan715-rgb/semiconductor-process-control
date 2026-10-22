@@ -417,13 +417,15 @@ def _figures(
         centre = t[masks[key]].iloc[int(masks[key].sum() // 2)]
         a2.text(
             centre,
-            0.04,
+            0.80,
             f"{rg[label]['either_alarm_rate']:.0%} alarm · {rg[label]['fail_rate']:.1%} fail",
             transform=a2.get_xaxis_transform(),
             ha="center",
-            va="bottom",
+            va="top",
             fontsize=7,
             color=INK,
+            bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.85, "pad": 1.5},
+            zorder=4,
         )
     a2.text(
         0.995,
@@ -504,10 +506,17 @@ def _figures(
         a2.plot(sens["n_components"], sens[f"fisher_p_{label}"], "o-", color=colour, label=name)
     a2.axhline(0.05, color=MUTED, ls="--", lw=1, label="p = 0.05")
     a2.set_yscale("log")
+    # a decade of headroom below the data keeps the legend clear of the lines
+    p_min = float(
+        sens[[f"fisher_p_{k}" for k in ("pre_baseline", "phase_i_baseline", "phase_ii")]]
+        .min()
+        .min()
+    )
+    a2.set_ylim(bottom=min(1e-4, p_min / 10), top=2.0)
     a2.set_xlabel("components retained (A)")
     a2.set_ylabel("Fisher p, alarm vs failure")
-    a2.set_title("Do alarmed runs fail more often, within each regime?")
-    a2.legend(fontsize=7, frameon=False)
+    a2.set_title("Alarm vs failure, within each regime")
+    a2.legend(fontsize=6.5, frameon=False, loc="lower left")
     a2.grid(lw=0.6)
     fig.tight_layout()
     ctx.save_figure(fig, "fig09_mspc_sensitivity")

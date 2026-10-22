@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 
 from ...export import (
+    DATE_FORMAT,
     build_dim_date,
     build_dim_sensor,
     build_fact_measurement,
@@ -39,8 +40,6 @@ REQUIRES = (
     "forward_scores",
 )
 PRODUCES = ("tables", "manifest")
-
-DATE_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
 
 def run(ctx: PipelineContext) -> None:
@@ -78,16 +77,20 @@ def run(ctx: PipelineContext) -> None:
         "fact_gchart": ctx["gchart"].table,
     }
     manifest = write_all(paths.powerbi, tables)
-    clean.to_csv(paths.processed / "secom_clean_wide.csv", index=False, date_format=DATE_FORMAT)
-    ctx["audit"].to_csv(paths.processed / "sensor_audit.csv")
-    ctx["models_df"].to_csv(paths.processed / "model_results.csv", index=False)
-    ctx["confound"].to_csv(paths.processed / "confound_check.csv", index=False)
-    ctx["impute_log"].to_csv(paths.processed / "imputation_log.csv", index=False)
+    # LF on every platform, so outputs and the manifest byte counts are the
+    # same on Windows and Linux.
+    lf = {"lineterminator": "\n"}
+    out = paths.processed
+    clean.to_csv(out / "secom_clean_wide.csv", index=False, date_format=DATE_FORMAT, **lf)
+    ctx["audit"].to_csv(out / "sensor_audit.csv", **lf)
+    ctx["models_df"].to_csv(out / "model_results.csv", index=False, **lf)
+    ctx["confound"].to_csv(out / "confound_check.csv", index=False, **lf)
+    ctx["impute_log"].to_csv(out / "imputation_log.csv", index=False, **lf)
 
     ctx.results["watchlist"] = watch
     ctx.results["exports"] = manifest.to_dict("records")
     (paths.reports / "results.json").write_text(
-        json.dumps(ctx.results, indent=2, default=str), encoding="utf-8"
+        json.dumps(ctx.results, indent=2, default=str), encoding="utf-8", newline="\n"
     )
     ctx.artifacts["tables"] = tables
     ctx.artifacts["manifest"] = manifest

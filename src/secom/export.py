@@ -20,6 +20,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+#: ISO-8601, so Power BI cannot misread the day-first source dates (D21).
+DATE_FORMAT = "%Y-%m-%dT%H:%M:%S"
+
 
 def build_dim_date(runs: pd.DataFrame) -> pd.DataFrame:
     """Daily date table for the whole campaign with no missing days.
@@ -181,7 +184,7 @@ def write_all(out_dir: str | Path, tables: dict[str, pd.DataFrame]) -> pd.DataFr
     rows = []
     for name, table in tables.items():
         path = out_dir / f"{name}.csv"
-        table.to_csv(path, index=False, date_format="%Y-%m-%dT%H:%M:%S")
+        table.to_csv(path, index=False, date_format=DATE_FORMAT, lineterminator="\n")
         rows.append(
             {
                 "table": name,
@@ -192,5 +195,5 @@ def write_all(out_dir: str | Path, tables: dict[str, pd.DataFrame]) -> pd.DataFr
             }
         )
     manifest = pd.DataFrame(rows)
-    manifest.to_csv(out_dir / "_manifest.csv", index=False)
+    manifest.to_csv(out_dir / "_manifest.csv", index=False, lineterminator="\n")
     return manifest
