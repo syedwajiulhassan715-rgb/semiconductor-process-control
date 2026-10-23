@@ -39,14 +39,19 @@ except §9, which `secom validate tep` writes to
    can never signal an improvement (§7).
 8. **The change is located at run 375 (21 Aug, W34)**, with a 95% interval of
    runs 280–463 that contains the week-35 baseline boundary. There is no second
-   change: after it the process runs at 4.27%, so the 3.07% baseline may be
-   optimistic (§8).
+   change: after it the process runs at 4.27%, so the 3.07% baseline is
+   optimistic: at 4.27% the deployed CUSUM false-alarms every 210 runs
+   (12 days), not 509, and with the observed overdispersion every 179 runs
+   (§7, §8).
 9. **The implementation is validated where the truth is known.** On the
    Tennessee Eastman benchmark, under the published threshold rule, the repo's
    PCA code reproduces the original paper's detection rates for all 21 faults
    to a mean gap of 0.003 (T²) and 0.005 (SPE). Its textbook limits hold there
    (0.6% in-sample against a nominal 1%); on SECOM the same code alarms on
    12.0%, so the calibration failure is a property of the data, not a bug (§9).
+   The SPE limit's excess false alarms on new TEP data were traced the same
+   way: the formula is exact on Gaussian data, and the excess is a 24% rise in
+   new-run SPE (§9).
 
 The deliverable is a **monitoring** system, not a prediction system. That
 conclusion is the finding, not a shortfall.
@@ -195,6 +200,29 @@ alarming for the entire 89 days, including the five weeks the process was
 demonstrably healthy. Reset-on-signal is how a CUSUM is actually operated: it
 signals, an engineer investigates, the chart restarts against the process as it
 now stands.
+
+### The improvement side
+
+The lower panel of the figure is the **lower Bernoulli CUSUM** (**D42**), the
+improvement detector recommended in §7. It is the mirror of the upper chart:
+designed on the same p₀ = 3.07% for p₁ = p₀/2 = 1.53%, it adds
+log((1−p₁)/(1−p₀)) = +0.016 per passing run and log(p₁/p₀) = −0.69 per failure,
+floored at zero, and signals above **h = 1.508**, calibrated by the same
+simulation to an in-control ARL of **505 runs**. It resets on signal (**D13**).
+
+On the real data it alarms twice, both inside the Phase I baseline: run 777
+(10 Sep, W37) and run 1,026 (23 Sep, W39). About 1.4 are expected in 717
+in-control runs. It stays silent in W29–34 and W40–42. Both periods ran above
+p₀, and a lower chart should never fire there.
+
+The deployed lower chart can only say that the process got better than
+Phase I. To show it would have caught the improvement that actually happened,
+the same chart was designed on the degraded rate of weeks ≤ 34 (12.92% → 6.46%,
+h = 2.571, ARL₀ 496) and run from the start of the campaign. It signals once
+inside the degraded period (run 144, W32, a false alarm). Its next signal is
+**run 463 (28 Aug, W35): 88 runs (6.4 days) after the change point §8
+estimates at run 375**. This replay is illustrative only, because the
+reference rate is estimated from the same data it is run on.
 
 ---
 
@@ -560,21 +588,96 @@ signal at all.
   the p-chart at every degradation ratio, including at matched false-alarm
   risk.
 - **The deployed CUSUM's operating cost is now explicit.** In control, half of
-  all streams false-alarm within 342 runs. At the observed cadence of 1,567
-  runs in 89 days, that is under three weeks. The baseline self-check (2 alarm
+  all streams false-alarm within 342 runs (about 20 days) under independence,
+  and within 203 runs (11.6 days) under the day-level overdispersion fit
+  below. The baseline self-check (2 alarm
   episodes in 717 runs) is consistent with that. It is a design choice, not a
   defect, and whoever runs the chart should be told it.
 - **If detecting improvement matters,** a lower CUSUM should replace the
   g-chart as the improvement detector. The g-chart is defensible only as a
-  readable companion chart.
+  readable companion chart. Section 3 now runs one on the real data, and the
+  replay monitor alarms on it (§10).
+
+### Under overdispersion
+
+![CUSUM robustness: ARL against design p₀, and ARL₀ under overdispersion](figures/fig16_cusum_robustness.png)
+
+The tables above simulate independent Bernoulli runs. The real weekly rates are
+overdispersed: σ_z = 1.463 across all weeks, and 1.656 from W35 onward, so the
+dispersion is not an artefact of the step change. The simulation is therefore
+repeated with a beta-binomial random effect (**D44**). Each calendar day, or in
+a second variant each ISO week, of the observed campaign draws its own fail
+probability from a Beta with mean p and intraclass correlation ρ. The runs of
+that day are then Bernoulli at that probability.
+
+**Calibration.** ρ is chosen so that simulated in-control campaigns at p₀,
+charted on the observed weekly subgroups exactly as fig01 is, have a mean
+Laney σ_z of 1.463.
+
+| Random effect | ρ | Day/week SD of the fail rate at p₀ | σ_z on 2,000 fresh campaigns | Predicted daily σ_z (observed 1.189) |
+|---|---:|---:|---:|---:|
+| none (independent) | 0 | — | 0.994 | 0.87 |
+| per ISO week | 0.0123 | 1.91 pp | 1.462 ± 0.008 | 0.85 |
+| **per calendar day** | **0.0620** | **4.29 pp** | **1.435 ± 0.008** | **1.07** |
+
+Both variants reproduce the weekly dispersion. Only the day-level effect also
+reproduces the daily dispersion: 20% of its simulated campaigns reach the
+observed daily σ_z, against 0.25% under the other two models. The day-level
+model is therefore the primary one. Independent streams reach the observed
+weekly σ_z only 4.5% of the time.
+
+**False alarms.** ARL₀ comes from 1,500 streams of 8,000 runs, at the line's
+17.46 runs/day. False-alarm probabilities use the same 4,000 streams and seed
+as the tables above.
+
+| Scheme | ARL₀, independent | ARL₀, week effect | ARL₀, day effect |
+|---|---:|---:|---:|
+| Upper CUSUM as deployed | 494 runs (28.3 d) | 435 (24.9 d) | **293 (16.8 d)** |
+| Lower CUSUM as deployed | 489 (28.0 d) | 359 (20.5 d) | **271 (15.5 d)** |
+
+| P(false alarm within 1,567 runs) | Independent | Week effect | Day effect |
+|---|---:|---:|---:|
+| Weekly p-chart (naive) | 0.073 | 0.495 | 0.491 |
+| Weekly Laney p′, σ_z = 1.463 | 0.004 | 0.187 | 0.194 |
+| Weekly Laney p′, σ_z = 2.250 | 0.000 | 0.029 | 0.033 |
+| g-chart | 0.052 | 0.320 | 0.394 |
+| Upper CUSUM, matched to p-chart | 0.077 | 0.434 | 0.572 |
+| Lower CUSUM, matched to g-chart | 0.048 | 0.340 | 0.395 |
+
+**Detection.** A shift is simulated with the same ρ around the new rate.
+
+| Scheme | 2×: P(≤ 400 runs), indep → day | 2×: median runs, indep → day | 0.5×: P(≤ 1,567), indep → day | 0.5×: median runs, indep → day |
+|---|---:|---:|---:|---:|
+| Weekly p-chart | 0.497 → 0.569 | 401 → 335 | 0 → 0 | — |
+| Laney p′ | 0.128 → 0.305 | — → 669 | 0 → 0 | — |
+| CUSUM as deployed | 0.992 → 0.983 | 76 → 76 | 1.000 → 1.000 | 148 → 125 |
+| CUSUM matched | 0.700 → 0.710 | 292 → 256 | 0.949 → 0.972 | 705 → 542 |
+| g-chart | — | — | 0.605 → 0.927 | 1,204 → 525 |
+
+What this means:
+- **Overdispersion costs the CUSUM about 40% of its in-control run length.** At
+  the day-level fit, the deployed chart false-alarms every 16.8 days on average,
+  not every 28.3. Half of all in-control streams alarm within 203 runs (11.6
+  days), not 342 runs.
+- **The weekly charts' false alarms rise far more.** The naive p-chart goes from
+  7% to 49% over a campaign. Laney p′ goes from 0.4% to 19%, despite being
+  widened by exactly the σ_z the simulation is calibrated to: its normal-theory
+  limits are too narrow for the skewed upper tail of a beta-binomial week.
+  The D31 matching therefore does not survive overdispersion.
+- **Detection power is almost unchanged.** The CUSUM's degradation power is the
+  same within Monte Carlo error. The apparent gains for the p-chart, Laney p′
+  and g-chart mostly come from their inflated false-alarm rate, not real
+  sensitivity. At roughly equal false-alarm risk (0.57 against 0.49), the
+  matched CUSUM still leads the p-chart at a doubling, 0.71 against 0.57 within
+  400 runs.
 
 ### Limits of the simulation
 
-- **Streams are independent Bernoulli.** The real weekly rates are
-  overdispersed (σ_z = 1.46). Under overdispersion every scheme false-alarms
-  more than simulated, and run-level accumulators like the CUSUM are affected
-  most. The in-control figures above are lower bounds on real false-alarm
-  rates.
+- **Overdispersion is modelled, not measured.** The random-effect model is
+  calibrated to one realised σ_z, and σ_z from 13 moving ranges is itself
+  noisy: 90% of calibrated campaigns fall between 0.89 and 2.07. The true ρ
+  could be materially smaller or larger. The figures under overdispersion are a
+  central estimate, not a bound.
 - **Shewhart timing is favourable.** Shifts start at run 1, so the first weekly
   subgroup is wholly post-shift. A mid-week shift would cost the weekly charts
   up to one more week, so their delays here are best cases.
@@ -649,11 +752,45 @@ episodes (Section 3) are measured against the Phase I rate. This result says
 they may reflect ordinary variation of the post-change process, not a new
 degradation.
 
-**The boundary of the baseline is right; its level may be optimistic.** If
-W35–39 was a favourable stretch of a process whose sustained rate is nearer 4.3%,
-then a CUSUM designed on p₀ = 3.07% will alarm more often than its designed
-ARL₀. p₀ should be re-estimated as post-change data accumulates. This is a
-caveat on the recommendation, not a reversal of it.
+### Re-estimating p₀
+
+**The boundary of the baseline is right; its level is optimistic, and that
+matters.** The CUSUM was redesigned on other values of p₀ with the deployed
+design logic (**D43**): p₁ = 2p₀, and h calibrated by the same simulation to an
+ARL₀ of 500 runs at that p₀. Each design was then run on the real data and its
+in-control run length simulated at the Phase I rate and at the post-change
+rate. Days are at the line's 17.46 runs/day.
+
+| Design p₀ | h | ARL at a true 3.07% | ARL at a true 4.27% | Alarms: W35–39 / W40–42 | Runs to signal, W29–34 |
+|---|---:|---:|---:|---:|---:|
+| 2.00% | 1.528 | 197 runs (11.3 d) | 105 (6.0 d) | 4 / 6 | 12 |
+| 2.50% | 1.682 | 300 (17.2 d) | 145 (8.3 d) | 3 / 5 | 12 |
+| **3.07% (deployed)** | **1.822** | **494 (28.3 d)** | **210 (12.0 d)** | **2 / 4** | **12** |
+| 3.50% | 1.895 | 719 (41.2 d) | 274 (15.7 d) | 1 / 4 | 15 |
+| 4.00% | 2.007 | 1,183 (67.8 d) | 404 (23.1 d) | 1 / 4 | 15 |
+| **4.27% (post-change)** | **2.073** | 1,582 (90.6 d) | **503 (28.8 d)** | **1 / 4** | **15** |
+| 5.00% | 2.212 | 2,868* (164 d) | 857 (49.1 d) | 0 / 3 | 15 |
+| 5.99% (W40–42) | 2.352 | 4,959* (284 d) | 1,776 (102 d) | 0 / 1 | 41 |
+
+\* Partly censored at 8,000 runs (8% and 35% of streams), so these are lower bounds.
+
+- **If the process now runs at 4.27%, the deployed chart's real ARL₀ is 210
+  runs (12 days), not 509.** Its 6 alarms from W35 onward are what an
+  in-control 4.27% process would produce: 1,118 runs ÷ 210 = 5.3 expected.
+  This is the quantitative form of the statement above that the Phase II
+  alarms may be ordinary variation.
+- **The redesigned chart buys its false-alarm rate back almost for free.** On
+  p₀ = 4.27% (h = 2.073), it detects the W29–34 degradation in 15 runs instead
+  of 12. Its baseline alarms fall from 2 to 1.
+- **W40–42 still alarms 4 times under the redesign.** That is against 0.8
+  expected under independence, or 1.4 under the day-level overdispersion of §7
+  (ARL 286 runs). W40–42 ran at 5.99%, which is 1.4× the post-change rate. This
+  stays a watch item, not a confirmed degradation.
+
+The 4.27% estimate uses the whole post-change period, through W42, so it was
+not available when the Phase I limits were set. The report's figures and the
+replay monitor therefore keep the 3.07% design, which is what the line could
+have deployed at the time; the redesign is the forward recommendation.
 
 ### Limits
 
@@ -769,7 +906,32 @@ The T² limit matches. The Jackson–Mudholkar SPE limit here alarms about four
 times as often as the paper's Q threshold did on the same file. Since the
 detection rates agree once both use the same empirical threshold, the model
 and statistics are the same; the difference is confined to the formula-based
-SPE limit. Its cause was not traced further.
+SPE limit.
+
+The formula is not the cause (**D41**). Jackson–Mudholkar is implemented as
+published (θᵢ from the residual eigenvalues of the training correlation
+matrix): with the true subspace and Gaussian data drawn from TEP's own training
+correlation, it alarms at 0.998% for a nominal 1%, and the independent
+Box (1954) χ² approximation gives almost the same limit on TEP (41.3 against
+41.7) and the same false-alarm rate (7.4%). In-sample, training SPE has exactly
+the mean the limit assumes (23.8 against θ₁ = 23.8) and alarms at 0.4%, the
+paper's training figure. The excess comes from new data: SPE averages 28.0 out
+of fold on the training file and 29.6 on `d00_te`, 17% and 24% above θ₁, and
+dividing out that level shift brings `d00_te` back to 0.7%. Three things cause
+it:
+- **Overfitting.** The 11-component subspace overfits 500 training samples
+  (Gaussian simulation at n = 500: 2.4%).
+- **Autocorrelation.** TEP's autocorrelation makes this worse (AR(1) at its
+  median lag-1 of 0.55: 4.4%, matching TEP's 4.2% out of fold).
+- **A noisier test run.** `d00_te` is noisier than `d00` (median SD ratio 1.06,
+  up to 1.36 on analyser variables).
+
+How the paper reached 1.6% on the same file could not be reconstructed:
+scaling `d00_te` by its own mean and SD gives 2.0%, and no variant of the
+formula comes close. The check did find one latent defect: for h₀ ≤ 0 the
+closed form returns a lower-tail value. It now falls back to the Box limit.
+h₀ is 0.14–0.28 on every model fitted here, so no reported number changes,
+including SECOM's 15.8%.
 
 Detection delays, measured as the first of six consecutive alarms after the
 onset (3 minutes per sample):
@@ -857,29 +1019,33 @@ detection in the published benchmark.</sub></p>
   close to independent. The validation shows the implementation is correct
   and isolates the cause of the SECOM calibration failure. It does not show
   that any SECOM chart detects a real fab fault.
-- **Why the formula-based SPE limit differs from the paper's.** Detection
-  agrees once both use the published threshold rule, but the
-  Jackson–Mudholkar SPE limit false-alarms at 7.1% on `d00_te` against the
-  paper's 1.6%. The cause was not traced.
+- **How the paper's SPE limit reached 1.6%.** The repo's 7.1% is traced to
+  the data, not the formula (D41), but the paper's test-set procedure cannot
+  be recovered from its text.
 
 ---
 
 ## 10. The monitoring scheme, operating
 
-The recommendation is a Bernoulli CUSUM against the week 35–39 baseline as the
-live yield monitor, a g-chart alongside it as an improvement detector, and S060
-on a watchlist. `secom monitor` runs that scheme through the 1,567 SECOM runs in
-time order, one run at a time, so the recommendation can be seen working rather
-than read about.
+The recommendation is an upper Bernoulli CUSUM against the week 35–39 baseline
+as the live yield monitor, a lower Bernoulli CUSUM alongside it as the
+improvement detector, and S060 on a watchlist. `secom monitor` runs that scheme
+through the 1,567 SECOM runs in time order, one run at a time, so the
+recommendation can be seen working rather than read about.
+
+**[Try it in the browser](https://syedwajiulhassan715-rgb.github.io/semiconductor-process-control/demo/)**:
+the docs site serves the same page with the replay engine ported to JavaScript,
+so it runs with nothing installed (**D45**).
 
 <p align="center">
-  <img src="../docs/img/monitor.png" width="100%" alt="Replay monitor at run 1,310: CUSUM trace with alarms, g-chart, S060 watchlist panel and the alarm log">
+  <img src="../docs/img/monitor.png" width="100%" alt="Replay monitor at run 1,310: upper and lower CUSUM with alarms, g-chart, S060 watchlist panel and the alarm log">
 </p>
 <p align="center">
-  <sub><b>Run 1,310, week 40.</b> The opening excursion has been worked as two acknowledged
-  alarms. A third, raised at run 606 in the baseline window, is open. The g-chart has never
-  approached its 212-run UCL. S060 is shown against its Phase I limits, for information only.
-  A dark-theme capture is in <code>docs/img/monitor-dark.png</code>.</sub>
+  <sub><b>Run 1,310, week 40.</b> Two alarms are open and unacknowledged: the degradation alarm
+  raised at run 12, which every later upper signal has counted against, and an improvement
+  alarm raised by the lower CUSUM at run 777 in the baseline window, a false alarm at about
+  the rate its ARL predicts. The g-chart is context only. S060 is shown against its Phase I
+  limits, for information only. A dark-theme capture is in <code>docs/img/monitor-dark.png</code>.</sub>
 </p>
 
 ### Running it
@@ -896,6 +1062,7 @@ secom monitor --speed 50 --open
 | `--speed` | 20 | Initial playback speed, runs per second |
 | `--open` | off | Open the page in the default browser |
 | `--root` | cwd | Repository root holding `reports/` and `data/powerbi/` |
+| `--export DIR` | – | Write the static, server-free page to DIR instead of serving |
 
 The page has play/pause, single step (→), speed, jump-to-run and reset controls.
 Space toggles playback. URL options `?theme=light|dark`, `?speed=N` and
@@ -909,11 +1076,13 @@ standard library, and the page loads Chart.js 4.4.1 from cdnjs.
 
 ### What each panel is
 
-**CUSUM.** It shows the statistic, the decision interval h = 1.822, a marker on
-every signalling run, and bands for the three regimes. The values are the batch
-CUSUM's, not a lookalike. The online implementation reproduces
+**CUSUM.** The upper statistic is drawn above zero with its decision interval
+h = 1.822; the lower one is mirrored below zero with h = 1.508. Each signalling
+run is marked, and bands show the three regimes. The values are the batch
+CUSUMs', not lookalikes. The online upper chart reproduces
 `spc.bernoulli_cusum` bit for bit, and the exported `fact_run.cusum` column to
-the CSV's 4×10⁻¹⁶ rounding. Both are asserted in `tests/test_monitor.py`.
+the CSV's 4×10⁻¹⁶ rounding; the lower chart matches the vectorised recursion in
+`secom.power`. Both are asserted in `tests/test_monitor.py`.
 
 **Alarms.** This panel is the operational layer the batch chart does not have,
 and the distinction matters (D35):
@@ -925,17 +1094,18 @@ and the distinction matters (D35):
   against it instead of raising new alarms, so one excursion is one
   investigation.
 
-Left unacknowledged, all 21 signalling runs of the campaign fold into a single
-alarm raised at run 12, 0.46 days in. That is the same detection time as §3,
-seen from the line.
+Left unacknowledged, all 21 upper signalling runs of the campaign fold into a
+single degradation alarm raised at run 12, 0.46 days in. That is the same
+detection time as §3, seen from the line. The lower CUSUM's two signals, at
+runs 777 and 1,026, fold into one improvement alarm.
 
 **g-chart.** It shows passing runs since the last failure against exact
-geometric limits at the Phase I rate (UCL 212, centre 31.6). The open gap is
-tracked live, so an improvement would be signalled on the run where the gap
-crosses the UCL, without waiting for the next failure to close it. Over this
-campaign it never signals: the longest gap is 99 runs. The page states that the
-lower limit is inactive at this rate (D11), so the chart cannot be mistaken for
-a degradation detector.
+geometric limits at the Phase I rate (UCL 212, centre 31.6). It is kept as
+context but no longer raises alarms (D45): the lower CUSUM is the improvement
+detector, and two alarms for one improvement would open the same investigation
+twice. Gaps above the UCL are still marked. Over this campaign there are none:
+the longest gap is 99 runs. The page states that the lower limit is inactive at
+this rate (D11), so the chart cannot be mistaken for a degradation detector.
 
 **S060.** Each reading is plotted against S060's Phase I individuals limits,
 with failed runs marked and the exceedance count over the last 50 runs shown
@@ -966,21 +1136,25 @@ acknowledgement had not happened yet.
 
 | File | Contents |
 |---|---|
-| `src/secom/monitor.py` | Online CUSUM, g-chart and watchlist trackers, alarm book, replay session, loader |
+| `src/secom/monitor.py` | Online upper and lower CUSUM, g-chart and watchlist trackers, alarm book, replay session, loader |
 | `src/secom/monitor_server.py` | Standard-library HTTP server and JSON API |
-| `src/secom/monitor_static/index.html` | The page (light and dark themes) |
-| `tests/test_monitor.py` | 47 tests: batch equivalence, alarm semantics, replay determinism, the HTTP API |
+| `src/secom/monitor_export.py` | Static export: design and run stream as JSON, plus the page |
+| `src/secom/monitor_static/index.html` | The page (light and dark themes), served or static |
+| `src/secom/monitor_static/engine.js` | JavaScript port of the replay engine for the static page |
+| `tests/test_monitor.py`, `tests/test_monitor_static.py` | Batch equivalence, alarm semantics, replay determinism, the HTTP API, the export, and a node run requiring `engine.js` to match Python exactly |
 
 ---
 
 ## 11. Delivered artefacts
 
-- **The analysis as a package.** `secom run` executes twelve pipeline stages
+- **The analysis as a package.** `secom run` executes thirteen pipeline stages
   configured by `config/default.yaml` (**D25**); `secom validate tep` runs §9;
   `secom monitor` serves §10. A Docker image runs the same commands on Linux.
 - **Documentation site.** MkDocs pages for setup, configuration, the pipeline
   architecture and a generated API reference, with this report and the decision
-  log included from source.
+  log included from source, and the
+  [live replay monitor](https://syedwajiulhassan715-rgb.github.io/semiconductor-process-control/demo/)
+  regenerated from the committed outputs on every build.
 - **A Power BI model**, described below and in `powerbi/README.md`.
 
 The Power BI star schema (`data/powerbi/`):
@@ -1025,17 +1199,16 @@ Stated in full (**D22–D24**):
   change.** A change in test limits or gauge would look identical in this data.
 - **Generalisation beyond 2008 and beyond this line.** 89 days, one product.
 - **S060's stability** — see the W40–42 caveat in §4.
-- **The true in-control rate.** The change-point analysis (§8) finds one change
-  and no further one: the post-change process runs at 4.27%, against the 3.07%
-  Phase I baseline. A CUSUM designed on 3.07% will alarm more often than its
-  designed ARL₀ if 4.27% is the sustained rate.
+- **The true in-control rate and the true dispersion.** If 4.27% is the
+  sustained rate, the deployed chart's ARL₀ is 210 runs, not 509. With the
+  observed overdispersion it is 179 runs, about 10 days (§7, §8). Both figures
+  rest on models calibrated to one campaign.
 - **That the monitoring detects real fab faults.** SECOM has no fault labels.
   §9 validates the implementation on Tennessee Eastman, a simulated process
   with different statistics; it does not transfer detection power to SECOM.
-- **Why the TEP SPE limit is looser than the published one.** Detection rates
-  match the original paper under its threshold rule, but the formula-based
-  SPE limit false-alarms at 7.1% on normal data against the paper's 1.6%
-  (**D38**).
+- **How the paper's TEP SPE limit reached 1.6%.** The repo's 7.1% is traced
+  to overfitting, autocorrelation and a noisier test run, not to the formula
+  (**D41**); the paper's own test-set procedure is not recoverable.
 - **Whether the sensor limits are too narrow.** The individuals charts take σ
   from the moving range. On SECOM that estimate is 0.78 of the overall SD, so
   the sensor limits are about 22% narrower than SD-based ones. Recorded rather
@@ -1053,11 +1226,19 @@ Stated in full (**D22–D24**):
 Run the **Bernoulli CUSUM against the week 35–39 baseline** as the live yield
 monitor (§3, operated as in §10). Tell whoever runs it what it costs: in
 control, half of all streams false-alarm within 342 runs, under three weeks at
-this line's cadence (§7). **Re-estimate p₀** as post-change data accumulates,
-since the sustained rate may be nearer 4.3% than 3.07% (§8).
+this line's cadence, and within about 12 days under the observed
+overdispersion (§7).
 
-For improvement, a lower Bernoulli CUSUM detects far sooner than the g-chart
-(§7); keep the g-chart as its readable companion. Keep the weekly p′-chart for
+**Re-design on p₀ = 4.27%** (h = 2.073), the post-change rate (§8). The deployed
+3.07% design false-alarms every ~12 days at that rate, and its Phase II alarms
+are what an in-control 4.27% process produces. The redesign costs 3 runs of
+delay on the degradation that actually happened. Quote the false-alarm cadence
+under overdispersion (about 16 days at ARL 286), not the independent-run 500;
+calibrating h on overdispersed streams is the next step if 500 must hold.
+
+For improvement, run the lower Bernoulli CUSUM alongside (§3, fig02). It
+detects far sooner than the g-chart (§7); keep the g-chart as its readable
+companion. Keep the weekly p′-chart for
 reporting, labelled with its blind spot. Put **S060** on a watchlist with a
 scheduled re-test of its within-regime association — not on a root-cause
 report.

@@ -698,3 +698,128 @@ change committed outputs outside this validation's scope.
 watchlist) overstates excursions relative to an SD-based chart.
 `[Violation Ratio vs Chance]` in the DAX already warns against reading raw
 counts.
+
+### D41. The SPE limit formula is correct; its TEP false alarms come from the data
+
+The textbook SPE limit alarms on 7.1% of `d00_te` against the paper's 1.6%, so
+the formula was checked independently. With the true subspace and Gaussian data
+drawn from TEP's training correlation, Jackson–Mudholkar alarms at 0.998% for
+α = 0.01 and matches the exact quantile to 0.1%. On TEP the Box (1954)
+g·χ²(h) limit (41.3) agrees with it (41.7) and alarms at 7.4%. ddof, the
+training length (480 vs 500 rows) and the quantile's sign each leave the rate
+at 7.1–7.6%. The excess is in the data: new-run SPE averages 24% above θ₁, and
+removing that shift gives 0.7%. Simulation attributes it to subspace
+overfitting at n = 500 (2.4%), autocorrelation (4.4% at φ = 0.55) and a noisier
+test run (median SD ratio 1.06).
+
+The check found one real defect: for h₀ ≤ 0 the closed form returns a
+lower-tail value that nearly every point exceeds. It now returns NaN, and the
+fit falls back to Box. h₀ is 0.14–0.28 on every TEP and SECOM model fitted
+here, so no reported number changes, including SECOM's 15.8%.
+`spe_limit_diagnostics` records the evidence in `tep_results.json`.
+
+**If wrong:** if the paper's 1.6% reflects a different, unstated test-set
+scaling, our 7.1% is still the right figure for limits fixed on `d00`. Scaling
+`d00_te` by its own statistics gives 2.0%, but a deployed chart can't scale by
+data it hasn't seen yet.
+
+---
+
+## Improvement detection and robustness
+
+### D42. The lower CUSUM is run on the real data, designed for a halving
+
+The improvement detector the report recommends is now a deployed chart, not
+just a simulated one. `spc.bernoulli_cusum_lower` is the exact mirror of the
+upper chart. It has the same log-likelihood-ratio increments, floor at zero,
+reset on signal (D13) and h calibration (D12), with p₁ = 0.5·p₀
+(`cusum.lower_ratio`). A halving is the smallest improvement worth confirming,
+matching the doubling on the upper side. At p₀ = 3.07%: h = 1.508, ARL₀ ≈ 505
+runs. It is verified against a brute-force implementation of Page's
+max-of-partial-sums definition and against its in-control ARL by simulation.
+
+A second lower chart, designed on the weeks ≤ 34 rate, replays the campaign. It
+is reported as an illustration only, because its reference rate comes from the
+data it is run on.
+
+**If wrong:** if improvements smaller than a halving matter, this chart is slow
+to see them. A `lower_ratio` closer to 1 reacts to smaller improvements but
+needs a longer run of passes before it can signal at all.
+
+### D43. p₀ is re-estimated as a sensitivity on the deployed design logic
+
+The change-point analysis (D33) puts the post-change rate at 4.27%, against the
+3.07% Phase I baseline (D7). The baseline is not silently replaced. Instead the
+`cusum_robustness` stage redesigns the CUSUM over a sweep of p₀ values, always
+including 3.07%, 4.27% and the W40–42 rate of 5.99%. Each design uses unchanged
+logic: p₁ = 2p₀, and h calibrated to an ARL₀ of 500. Each is reported with its
+alarms on the real data and its simulated ARL at both candidate true rates, in
+runs and in days.
+
+The Phase I window stays the reference for the report's figures and the replay
+monitor, because 4.27% uses data through W42 and could not have been known
+when the limits were set. The forward recommendation switches the operating
+design to p₀ = 4.27% because:
+- at that rate the deployed chart's ARL is 210 runs, not 509;
+- its 6 alarms from W35 onward match the 5.3 expected from an in-control
+  process;
+- the redesign delays detection of the real degradation by only 3 runs.
+
+**If wrong:** if W35–39 really is the sustained process and W40–42 a genuine
+excursion, a 4.27% design is too tolerant. Its ARL at a true 3.07% is 1,582
+runs, so a return to Phase I performance followed by a moderate degradation
+would be seen later.
+
+### D44. Overdispersion is simulated as a beta-binomial day effect, calibrated to the weekly σ_z
+
+Every power figure in §7 assumed independent runs, while the weekly σ_z is
+1.463 (D9). The simulation now adds a random effect:
+- **The model.** Each calendar day of the observed layout draws its fail
+  probability from a Beta with mean p and intraclass correlation ρ.
+- **Why a Beta.** It keeps the marginal rate exactly p. At fixed ρ the weekly
+  overdispersion ratio is nearly independent of p, so one ρ carries across
+  shift ratios.
+- **Calibration.** ρ is solved by Brent's method on common random numbers, so
+  that simulated in-control campaigns at p₀, charted exactly as fig01 is, have
+  a mean σ_z of 1.463. It is verified on fresh streams.
+- **Day, not week.** A week-level effect fits the weekly σ_z too, but predicts
+  a daily σ_z of 0.85, against 1.19 observed. Only the day effect, ρ = 0.062,
+  reproduces both. This is consistent with the within-day clustering found by
+  the day-block permutation (D33).
+- **What is reported.** Both levels are reported, alongside the independent
+  case on the same uniforms.
+
+**If wrong:**
+- **If the dispersion is a slow weekly drift and not day-to-day variation,**
+  the week-level row applies. The deployed CUSUM's ARL₀ is then about 435 runs,
+  not 293.
+- **If σ_z = 1.463 overstates the true dispersion** (it is one draw from a wide
+  sampling distribution), every overdispersed false-alarm figure is too
+  pessimistic.
+
+### D45. The monitor alarms on a lower CUSUM, not the g-chart, and ships as a static demo
+
+The report finds that at equal false-alarm risk a lower Bernoulli CUSUM detects
+a fall in the fail rate far sooner than the g-chart, so the replay monitor now
+runs the D42 chart beside the upper one, reading its design (p₁ = p₀/2,
+h = 1.508, ARL₀ ≈ 505) from `results.json`. If no lower design is there, it
+falls back to p₁ = p₀/2 with the upper h and says the ARL is not calibrated.
+The g-chart stays on the page as context, but it no longer raises alarms: two
+alarms for one improvement would open the same investigation twice. Over this
+campaign the lower CUSUM signals at runs 777 and 1,026, both in the baseline.
+These are false alarms at about the rate its ARL predicts, and they are left
+visible.
+
+The same page runs without a server. `secom monitor --export` writes the design
+and run stream to JSON, and `engine.js`, a JavaScript port of the replay
+engine, answers the page's API calls in the browser. The docs build regenerates
+it into `/demo/` from committed outputs. The CUSUM weights are exported as
+Python's doubles, and a test runs the engine under node and requires every
+response to equal the Python engine's.
+
+**If wrong:** if the JavaScript port drifted from Python, the public demo would
+show a different system from the one the report recommends. The node
+equivalence test fails on any difference in any value, alarm or log entry. If
+the lower CUSUM's false-alarm rate is judged too high for the floor, raise its
+h (the matched design, h = 4.63, has the g-chart's false-alarm risk) rather than
+going back to the g-chart.

@@ -9,7 +9,8 @@
 <a href="https://github.com/syedwajiulhassan715-rgb/semiconductor-process-control/actions/workflows/docs.yml"><img src="https://github.com/syedwajiulhassan715-rgb/semiconductor-process-control/actions/workflows/docs.yml/badge.svg" alt="Docs"></a>
 <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2E7D4F" alt="MIT license"></a>
 <img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-3776AB?logo=python&logoColor=white" alt="Python 3.11 | 3.12 | 3.13">
-<img src="https://img.shields.io/badge/tests-262-2E7D4F" alt="262 tests">
+<img src="https://img.shields.io/badge/tests-423-2E7D4F" alt="423 tests">
+<a href="https://github.com/syedwajiulhassan715-rgb/semiconductor-process-control/actions/workflows/ci.yml"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/syedwajiulhassan715-rgb/semiconductor-process-control/badges/coverage.json" alt="coverage"></a>
 <a href="https://docs.astral.sh/ruff/"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Ruff"></a>
 <img src="https://img.shields.io/badge/types-mypy-2E7D4F" alt="mypy">
 <img src="https://img.shields.io/badge/docker-ready-2496ED?logo=docker&logoColor=white" alt="Docker">
@@ -18,8 +19,13 @@
 </p>
 
 <p>
+<a href="https://syedwajiulhassan715-rgb.github.io/semiconductor-process-control/demo/"><img src="https://img.shields.io/badge/%E2%96%B6%20live%20demo-replay%20monitor-b3412c?style=for-the-badge" alt="Live demo: replay monitor"></a>
+</p>
+
+<p>
+<a href="https://syedwajiulhassan715-rgb.github.io/semiconductor-process-control/demo/"><b>Live demo</b></a> ·
 <a href="reports/ENGINEERING_REPORT.md"><b>Engineering report</b></a> ·
-<a href="DECISIONS.md"><b>Decision log (D1–D40)</b></a> ·
+<a href="DECISIONS.md"><b>Decision log (D1–D45)</b></a> ·
 <a href="https://syedwajiulhassan715-rgb.github.io/semiconductor-process-control/"><b>Documentation</b></a> ·
 <a href="reports/results.json"><b>results.json</b></a> ·
 <a href="powerbi/README.md"><b>Power BI setup</b></a>
@@ -47,6 +53,12 @@ The project then tests its own conclusions: it measures detection power by
 simulation, locates the yield change statistically, tries the multivariate
 chart a fab would reach for next, and validates the implementation on a
 benchmark where the faults are known.
+
+> **[Try the live monitor](https://syedwajiulhassan715-rgb.github.io/semiconductor-process-control/demo/)**: replay all 1,567 runs through the
+> recommended upper and lower Bernoulli CUSUMs, g-chart and S060 watchlist in
+> your browser, with nothing to install. Play, step, jump to any run and
+> acknowledge alarms as a line engineer would. `secom monitor` runs the same
+> page against the Python engine.
 
 ---
 
@@ -102,8 +114,18 @@ CUSUM signals a doubling of the failure rate within 400 runs in **70.0%** of
 streams; the p-chart does in **49.6%**, and the Laney p′ chart in 12.8%. For an
 improvement, the p-chart and Laney p′ **never** signal.
 
+The simulation is repeated with the overdispersion actually observed: a
+beta-binomial day effect calibrated to σ_z = 1.463. The deployed CUSUM's
+in-control run length falls from 494 to **293 runs (17 days)**, and the weekly
+p-chart's campaign false-alarm probability rises from 7% to 49%. The CUSUM's
+detection power barely moves.
+
 <p align="center">
   <img src="reports/figures/fig10_detection_delay.png" width="100%" alt="Median runs to first signal against the shift ratio, for each charting scheme">
+</p>
+
+<p align="center">
+  <img src="reports/figures/fig16_cusum_robustness.png" width="100%" alt="In-control ARL in days against the design p0, and ARL0 under independent, week-level and day-level overdispersion">
 </p>
 
 ### Where the change actually happened
@@ -111,8 +133,13 @@ improvement, the p-chart and Laney p′ **never** signal.
 The exact change-point estimate puts the shift at **run 375 (21 Aug, W34)**,
 14.17% before and 4.27% after (permutation p = 0.0005). Its 95% interval,
 runs 280–463, contains the week-35 boundary used for the baseline, so the
-baseline choice holds. There is no second change. That carries a caveat: the
-sustained post-change rate is 4.27%, so the 3.07% baseline may be optimistic.
+baseline choice holds. There is no second change, so the sustained
+post-change rate is 4.27% and the 3.07% baseline is optimistic. Redesigning
+the CUSUM on each candidate p₀ puts a number on it: at a true 4.27% the
+deployed chart false-alarms every **210 runs (12 days)**, not 509, and its six
+alarms from week 35 onward are what an in-control 4.27% process produces. A
+chart designed on 4.27% buys that back at a cost of 3 runs of delay on the real
+degradation.
 
 <p align="center">
   <img src="reports/figures/fig12_changepoint.png" width="100%" alt="Profile likelihood ratio over every split point, with the estimate, its interval and the week-35 boundary">
@@ -224,16 +251,27 @@ false-alarm rate.
   failure in §3 is a property of SECOM's heavy-tailed data, not a bug (D38).</sub>
 </p>
 
+The textbook SPE limit does false-alarm more on new TEP data than the paper
+reports (7.1% against 1.6%), and that was traced too (D41). The formula is
+exact on Gaussian data (0.998% at a nominal 1%), and an independent
+approximation agrees. The excess is a 24% rise in SPE on new runs, from
+subspace overfitting, autocorrelation and a noisier test run. The check also
+fixed a latent edge case in the formula that no model here reaches.
+
 ## 6 · The scheme, operating
 
 `secom monitor` replays the campaign run by run the way a line engineer would
-see it: the CUSUM against its threshold, alarms that stay open until
-acknowledged, the g-chart alongside, and S060 on watch. The online CUSUM
-reproduces the batch computation exactly. The server uses only the standard
-library.
+see it: the upper CUSUM for degradation and the lower CUSUM for improvement,
+alarms that stay open until acknowledged, the g-chart for context, and S060 on
+watch. The online CUSUMs reproduce the batch computation exactly. The server
+uses only the standard library.
+
+**[Open the live demo](https://syedwajiulhassan715-rgb.github.io/semiconductor-process-control/demo/)** to run it in your browser. The docs build
+exports the same page with the replay engine ported to JavaScript, and a test
+runs that engine under node and requires every value to equal Python's.
 
 <p align="center">
-  <img src="docs/img/monitor.png" width="100%" alt="Replay monitor at run 1,310: CUSUM trace with alarms, g-chart, S060 watchlist panel and the alarm log">
+  <a href="https://syedwajiulhassan715-rgb.github.io/semiconductor-process-control/demo/"><img src="docs/img/monitor.png" width="100%" alt="Replay monitor at run 1,310: upper and lower CUSUM with alarms, g-chart, S060 watchlist panel and the alarm log"></a>
 </p>
 
 ---
@@ -253,7 +291,7 @@ Linux the numbers agree to floating-point rounding (at most 6×10⁻¹⁶). The
 committed outputs come from the Docker image.
 
 **The choices that could quietly invalidate the result are pinned by tests** —
-262 of them:
+423 of them:
 
 | Risk | Guard |
 |---|---|
@@ -262,6 +300,8 @@ committed outputs come from the Docker image.
 | The g-chart's inactive lower limit being forgotten | `test_lower_limit_is_inactive_at_realistic_failure_rates` |
 | A CUSUM that alarms forever after one excursion | `test_reset_prevents_a_permanent_alarm` |
 | The live monitor drifting from the analysis | `test_reproduces_batch_cusum_exactly` |
+| The browser demo drifting from Python | `test_monitor_static.py` drives `engine.js` under node and requires every response to equal the Python engine's |
+| A lower CUSUM that is not Page's CUSUM | `test_lower_cusum.py` checks it against a brute-force max-of-partial-sums implementation |
 | Simulated detection power being wrong | `test_simulation_matches_exact_binomial` checks every Shewhart case against exact values |
 | A change-point method that cannot find a change | `test_recovers_a_known_split_and_covers_it` |
 | A PCA implementation error passing unnoticed | `test_detection_reproduces_the_published_table` holds all 21 Tennessee Eastman faults to the original paper's Table 4 |
@@ -286,7 +326,7 @@ Python ≥ 3.11.
 ```bash
 pip install -e .
 secom fetch                 # downloads SECOM into data/raw/
-secom run                   # ~40 s -> results.json, figures, Power BI CSVs
+secom run                   # ~70 s -> results.json, figures, Power BI CSVs
 secom monitor --open        # replay monitor at http://127.0.0.1:8050
 ```
 
@@ -312,6 +352,7 @@ secom run --config my.yaml       # rerun under different thresholds
 secom fetch --dataset tep        # Tennessee Eastman benchmark files
 secom validate tep               # the §5 validation
 secom monitor --speed 50         # replay at 50 runs per second
+secom monitor --export out/demo  # static, server-free monitor
 ```
 
 A custom config only needs the keys it changes, and an unknown key or a wrong
@@ -326,13 +367,13 @@ pip install -e ".[dev]"     # pytest, pytest-cov, ruff, mypy, pre-commit
 pre-commit install          # ruff + hygiene hooks on every commit
 ruff check . && ruff format --check .
 mypy                        # type-checks src/secom
-pytest -q --cov=secom       # 262 tests
+pytest -q --cov=secom       # 423 tests, 86% branch coverage
 
 pip install -e ".[docs]"    # MkDocs Material + mkdocstrings
 mkdocs serve                # docs site at http://127.0.0.1:8000
 ```
 
-Without the raw data, 26 real-data tests skip and the remaining 236 still run.
+Without the raw data, 29 real-data tests skip and the remaining 394 still run.
 CI runs lint, mypy, the full suite with coverage on Python 3.11–3.13, a
 `secom run` and `secom validate tep` smoke test, and a Docker build. The docs
 workflow builds the site with `--strict` and deploys it to GitHub Pages from
@@ -354,20 +395,22 @@ src/secom/
   config.py      typed, validated config loader (frozen dataclasses)
   pipeline/      staged pipeline: context, registry, plotting style
     stages/      load, audit, clean, yield_charts, cusum, sensor_screen, model,
-                 multivariate, shift_simulation, changepoint, figures, export
+                 multivariate, shift_simulation, changepoint, cusum_robustness,
+                 figures, export
   fetch.py       dataset download (SECOM, Tennessee Eastman)
   io.py          raw load; hard-errors if the matrix is not 1567x590
   audit.py       sensor disposition, missingness-vs-outcome testing
   clean.py       causal imputation (trailing rolling-median cascade)
-  spc.py         p-chart / Laney p', g-chart, Bernoulli CUSUM + ARL calibration;
+  spc.py         p-chart / Laney p', g-chart, upper and lower Bernoulli CUSUM + ARL calibration;
                  also individuals/MR, EWMA and Nelson rules
   stats.py       rank-based screening, Cliff's delta, Benjamini-Hochberg
   model.py       shuffled vs forward-chronological evaluation
   mspc.py        PCA monitoring: Hotelling T², SPE, contributions, CV limits
-  power.py       detection-power simulation against exact Shewhart values
+  power.py       detection-power simulation, exact Shewhart values, overdispersion
   changepoint.py Bernoulli change-point MLE, permutation tests, segmentation
   tep.py, tep_validation.py   Tennessee Eastman loader and validation
   monitor.py, monitor_server.py, monitor_static/   replay monitor
+  monitor_export.py   static export for the in-browser demo
   export.py      Power BI star schema
 scripts/         wrappers for `secom fetch` and `secom run`
 powerbi/
@@ -378,12 +421,12 @@ docs/            documentation site pages; docs/_gen builds the config,
                  architecture and API pages and includes the report
 mkdocs.yml       documentation site configuration
 Dockerfile, docker/   image for the pipeline and monitor; pinned versions
-tests/           262 tests
+tests/           423 tests
 reports/
   ENGINEERING_REPORT.md   the write-up
   results.json            every quoted number
   validation/             Tennessee Eastman results
-  figures/                fig01..fig15
+  figures/                fig01..fig16
 data/
   raw/         gitignored - fetched
   processed/   cleaned wide table, audit, imputation log, model results,
