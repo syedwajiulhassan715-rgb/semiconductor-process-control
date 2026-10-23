@@ -1,0 +1,59 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata below."
+type: software
+title: "Semiconductor Process Control: statistical process control and root-cause screening on the UCI SECOM fab dataset"
+abstract: >-
+  Production test monitoring and process control analysis of 1,567 runs of
+  the UCI SECOM semiconductor fab dataset: sensor audit, causal imputation,
+  Laney p'-charts, a simulation-calibrated Bernoulli CUSUM, FDR-controlled
+  sensor screens, forward-chronological failure models, PCA multivariate SPC,
+  change-point analysis, a replay monitor and a Power BI star schema export,
+  validated against the Tennessee Eastman process benchmark.
+authors:
+  - alias: syedwajiulhassan715-rgb
+license: MIT
+version: 1.1.0
+date-released: "2026-10-23"
+repository-code: "https://github.com/syedwajiulhassan715-rgb/semiconductor-process-control"
+url: "https://syedwajiulhassan715-rgb.github.io/semiconductor-process-control/"
+keywords:
+  - statistical process control
+  - SPC
+  - CUSUM
+  - Bernoulli CUSUM
+  - multivariate SPC
+  - change-point detection
+  - semiconductor manufacturing
+  - SECOM
+  - Tennessee Eastman process
+  - Power BI
+references:
+  - type: data
+    title: SECOM
+    authors:
+      - family-names: McCann
+        given-names: Michael
+      - family-names: Johnston
+        given-names: Adrian
+    year: 2008
+    publisher:
+      name: UCI Machine Learning Repository
+    doi: 10.24432/C54305
+    url: "https://archive.ics.uci.edu/dataset/179/secom"
+  - type: article
+    title: >-
+      Fault detection in industrial processes using canonical variate
+      analysis and dynamic principal component analysis
+    authors:
+      - family-names: Russell
+        given-names: Evan L.
+      - family-names: Chiang
+        given-names: Leo H.
+      - family-names: Braatz
+        given-names: Richard D.
+    journal: Chemometrics and Intelligent Laboratory Systems
+    volume: 51
+    issue: 1
+    start: 81
+    end: 93
+    year: 2000
