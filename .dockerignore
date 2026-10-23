@@ -1,4 +1,4 @@
-# Only pyproject.toml, README.md, src/, config/, docker/ and the committed
+# Only pyproject.toml, README.md, LICENSE, src/, config/, docker/ and the committed
 # outputs in data/ and reports/ are needed in the build context.
 .git
 .github
@@ -23,6 +23,5 @@ tests
 scripts
 powerbi
 data/raw
-reports/sections
 Dockerfile
 .dockerignore

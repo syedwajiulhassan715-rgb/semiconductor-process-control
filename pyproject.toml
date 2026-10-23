@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,6 +7,8 @@ name = "secom-process-control"
 version = "1.0.0"
 description = "Production test monitoring and process control analysis on the UCI SECOM fab dataset"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.11"
 keywords = [
     "statistical-process-control",

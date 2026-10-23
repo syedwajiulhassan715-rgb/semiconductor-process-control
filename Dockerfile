@@ -30,7 +30,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --constraint constraints.txt \
         numpy pandas scipy scikit-learn matplotlib statsmodels pyyaml
 
-COPY pyproject.toml README.md ./
+COPY pyproject.toml README.md LICENSE ./
 COPY src ./src
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --constraint constraints.txt --no-deps . \
