@@ -1,4 +1,4 @@
-"""SPC charts: individuals, EWMA, Nelson rules, p / Laney p', g-chart, Bernoulli CUSUM.
+"""SPC charts: individuals, EWMA, Nelson rules, p / Laney p', g-chart, Bernoulli CUSUMs.
 
 Written by hand mainly so that Phase I limits stay fixed during Phase II, sigma
 comes from the moving range instead of the overall SD, and p-charts get checked
@@ -439,37 +439,20 @@ class BernoulliCusumResult:
     arl0: float
     first_signal_index: int | None
     notes: list[str] = field(default_factory=list)
+    #: "upper" (detects a rise in the fail rate) or "lower" (detects a fall).
+    side: str = "upper"
 
 
-def bernoulli_cusum(
-    is_fail: np.ndarray,
-    *,
-    p0: float,
-    p1: float,
-    h: float,
-    reset_on_signal: bool = True,
+def _bernoulli_cusum(
+    is_fail: np.ndarray, *, p0: float, p1: float, h: float, reset_on_signal: bool, side: str
 ) -> BernoulliCusumResult:
-    """One-sided upper Bernoulli CUSUM (Reynolds & Stoumbos).
+    """Shared engine of the upper and lower Bernoulli CUSUMs.
 
-    Per run it adds:
-
-        log(p1/p0)            on a fail
-        log((1-p1)/(1-p0))    on a pass (negative)
-
-    floored at 0, and signals when the total goes above h. Get h from
-    calibrate_cusum_h.
-
-    reset_on_signal sets the total back to 0 after a signal. Without it the
-    early excursion in this data pushes the statistic to ~28 and it takes ~900
-    good runs to come back down, so the rest of the campaign looks like one
-    long alarm.
+    Both accumulate the per-run log-likelihood ratio of p1 against p0, floored
+    at 0. Only the sign pattern of the two weights differs: for p1 > p0 a fail
+    pushes up and a pass pays down; for p1 < p0 it is the other way round.
     """
     x = np.asarray(is_fail, dtype=bool)
-    if not (0 < p0 < 1 and 0 < p1 < 1):
-        raise ValueError("p0 and p1 must lie strictly in (0, 1)")
-    if p1 <= p0:
-        raise ValueError("p1 must exceed p0 for an upper CUSUM")
-
     w_fail = np.log(p1 / p0)
     w_pass = np.log((1 - p1) / (1 - p0))
     increments = np.where(x, w_fail, w_pass)
@@ -496,13 +479,90 @@ def bernoulli_cusum(
         }
     )
     notes = [
-        f"design: p0 = {p0:.4f} -> p1 = {p1:.4f} "
+        f"{side} CUSUM design: p0 = {p0:.4f} -> p1 = {p1:.4f} "
         f"(odds ratio {(p1 / (1 - p1)) / (p0 / (1 - p0)):.2f}), h = {h:.3f}",
         f"weights: fail {w_fail:+.4f}, pass {w_pass:+.4f} per run",
         f"reset on signal: {reset_on_signal}",
     ]
     return BernoulliCusumResult(
-        table=table, p0=p0, p1=p1, h=h, arl0=np.nan, first_signal_index=first, notes=notes
+        table=table,
+        p0=p0,
+        p1=p1,
+        h=h,
+        arl0=np.nan,
+        first_signal_index=first,
+        notes=notes,
+        side=side,
+    )
+
+
+def _check_rates(p0: float, p1: float) -> None:
+    if not (0 < p0 < 1 and 0 < p1 < 1):
+        raise ValueError("p0 and p1 must lie strictly in (0, 1)")
+
+
+def bernoulli_cusum(
+    is_fail: np.ndarray,
+    *,
+    p0: float,
+    p1: float,
+    h: float,
+    reset_on_signal: bool = True,
+) -> BernoulliCusumResult:
+    """One-sided upper Bernoulli CUSUM (Reynolds & Stoumbos).
+
+    Per run it adds:
+
+        log(p1/p0)            on a fail
+        log((1-p1)/(1-p0))    on a pass (negative)
+
+    floored at 0, and signals when the total goes above h. Get h from
+    calibrate_cusum_h.
+
+    reset_on_signal sets the total back to 0 after a signal. Without it the
+    early excursion in this data pushes the statistic to ~28 and it takes ~900
+    good runs to come back down, so the rest of the campaign looks like one
+    long alarm.
+    """
+    _check_rates(p0, p1)
+    if p1 <= p0:
+        raise ValueError("p1 must exceed p0 for an upper CUSUM")
+    return _bernoulli_cusum(
+        is_fail, p0=p0, p1=p1, h=h, reset_on_signal=reset_on_signal, side="upper"
+    )
+
+
+def bernoulli_cusum_lower(
+    is_fail: np.ndarray,
+    *,
+    p0: float,
+    p1: float,
+    h: float,
+    reset_on_signal: bool = True,
+) -> BernoulliCusumResult:
+    """One-sided lower Bernoulli CUSUM: detects a fall in the fail rate.
+
+    The mirror of :func:`bernoulli_cusum`, designed for p1 < p0. Per run it
+    adds the same log-likelihood ratio,
+
+        log(p1/p0)            on a fail (negative)
+        log((1-p1)/(1-p0))    on a pass (positive, small)
+
+    floored at 0, and signals when the total goes above h. Evidence of an
+    improvement builds slowly from passes and each failure pays a lot of it
+    back. The statistic is non-negative and rises toward h, like the upper
+    chart's, so the two can share h calibration (:func:`calibrate_cusum_h`
+    accepts p1 < p0) and reset logic.
+
+    At p0 = 3.07% and p1 = p0/2 a pass adds about 0.016 and a fail removes
+    0.69, so a signal needs a long stretch of mostly passes: the chart is
+    slow by construction, because improvements are rare events to confirm.
+    """
+    _check_rates(p0, p1)
+    if p1 >= p0:
+        raise ValueError("p1 must be below p0 for a lower CUSUM")
+    return _bernoulli_cusum(
+        is_fail, p0=p0, p1=p1, h=h, reset_on_signal=reset_on_signal, side="lower"
     )
 
 
@@ -517,8 +577,10 @@ def calibrate_cusum_h(
 ) -> tuple[float, float]:
     """Find the h that gives target_arl0 when the fail rate is p0.
 
-    Returns (h, achieved_arl0). Simulation + bisection, since the usual ARL
-    approximations aren't great for this at low p0.
+    Works for both directions: p1 > p0 calibrates the upper CUSUM, p1 < p0
+    the lower one (:func:`bernoulli_cusum_lower`). Returns (h, achieved_arl0).
+    Simulation + bisection, since the usual ARL approximations aren't great for
+    this at low p0.
     """
     rng = np.random.default_rng(seed)
     w_fail = np.log(p1 / p0)

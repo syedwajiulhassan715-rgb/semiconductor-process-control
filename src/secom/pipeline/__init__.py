@@ -31,7 +31,8 @@ clean           clean: analysis frame (412 retained sensors, imputed, time
 yield_charts    weekly: DataFrame year_week / n / d; naive, laney, laney_p1:
                 PChartResult; gchart: GChartResult
 cusum           cusum_all: BernoulliCusumResult over all runs;
-                cusum_design: dict p0 / p1 / h / arl0
+                cusum_design: dict p0 / p1 / h / arl0; cusum_lower_all and
+                cusum_lower_design: the same for the lower (improvement) CUSUM
 sensor_screen   drift (sensor_id / drift_rho / drift_q); regime, fail_all,
                 fail_stable: screen_sensors frames; confound; watchlist:
                 list of sensor ids; limits: Phase I limits per sensor
@@ -41,8 +42,10 @@ model           models_df; rolling_df; perm_null: ndarray; obs_auc: float;
 multivariate    mspc_model: PCAModel fitted on Phase I; mspc_scores: T2 / SPE
                 per run; mspc_alarms: alarm flags under the CV limits
 shift_simulation power_table: detection probability and delay per scheme
-                and shift ratio
+                and shift ratio; monitor_design: the MonitorDesign simulated
 changepoint     changepoint_fit: change location, interval and segment rates
+cusum_robustness robustness_detection: detection table under independent and
+                overdispersed (beta-binomial day/week) streams
 """
 
 from __future__ import annotations
@@ -58,6 +61,7 @@ from .stages import (
     changepoint,
     clean,
     cusum,
+    cusum_robustness,
     export,
     figures,
     load,
@@ -79,6 +83,7 @@ STAGES: list[ModuleType] = [
     multivariate,
     shift_simulation,
     changepoint,
+    cusum_robustness,
     figures,
     export,
 ]

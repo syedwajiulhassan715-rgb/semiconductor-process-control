@@ -19,6 +19,7 @@ REQUIRES = (
     "naive",
     "laney",
     "cusum_all",
+    "cusum_lower_all",
     "models_df",
     "perm_null",
     "obs_auc",
@@ -86,19 +87,29 @@ def _yield_pchart(ctx: PipelineContext) -> None:
 
 def _cusum(ctx: PipelineContext) -> None:
     clean, cusum_all, masks = ctx["clean"], ctx["cusum_all"], ctx["masks"]
+    lower = ctx["cusum_lower_all"]
     R = ctx.results
     arl0 = R["cusum"]["arl0_runs"]
     h_label = f"decision interval h = {cusum_all.h:.2f}  (ARL₀ ≈ {arl0:.0f} runs)"
-    fig, ax = plt.subplots(figsize=(8.2, 3.4))
+    fig, (ax, ax2) = plt.subplots(
+        2, 1, figsize=(8.2, 5.6), sharex=True, gridspec_kw={"height_ratios": [1.6, 1]}
+    )
     t = clean["timestamp"]
     ax.plot(t, cusum_all.table["cusum"], color=INK, lw=0.9)
     ax.axhline(cusum_all.h, color=ACCENT, lw=1.2, ls="--", label=h_label)
-    for mask, colour, lab in (
-        (masks["pre"], ACCENT, "pre-baseline"),
-        (masks["base"], GOOD, "Phase I baseline"),
-        (masks["post"], BLUE, "Phase II monitored"),
-    ):
-        ax.axvspan(t[mask].min(), t[mask].max(), color=colour, alpha=0.07, label=lab)
+    for a in (ax, ax2):
+        for mask, colour, lab in (
+            (masks["pre"], ACCENT, "pre-baseline"),
+            (masks["base"], GOOD, "Phase I baseline"),
+            (masks["post"], BLUE, "Phase II monitored"),
+        ):
+            a.axvspan(
+                t[mask].min(),
+                t[mask].max(),
+                color=colour,
+                alpha=0.07,
+                label=lab if a is ax else None,
+            )
     sig = cusum_all.table["signal"].to_numpy()
     ax.plot(
         t[sig],
@@ -125,10 +136,33 @@ def _cusum(ctx: PipelineContext) -> None:
             color=MUTED,
         )
     ax.set_ylim(0, 3.25)
-    ax.set_ylabel("CUSUM statistic")
-    ax.set_title("Bernoulli CUSUM on run-level pass/fail — signals what the p-chart cannot")
+    ax.set_ylabel("upper CUSUM\n(degradation)")
+    ax.set_title("Bernoulli CUSUMs on run-level pass/fail — signal what the p-chart cannot")
     ax.legend(fontsize=7, frameon=False, ncol=2, loc="upper left")
     ax.grid(axis="y", lw=0.6)
+
+    low = R["cusum"]["lower"]
+    lsig = lower.table["signal"].to_numpy()
+    ax2.plot(t, lower.table["cusum"], color=INK, lw=0.9)
+    ax2.axhline(
+        lower.h,
+        color=GOOD,
+        lw=1.2,
+        ls="--",
+        label=f"h = {lower.h:.2f}  (ARL₀ ≈ {low['arl0_runs']:.0f} runs; p₁ = {low['p1']:.2%})",
+    )
+    ax2.plot(
+        t[lsig],
+        lower.table["cusum"][lsig],
+        "^",
+        color=GOOD,
+        ms=5,
+        label=f"improvement alarm ({lsig.sum()} runs)",
+    )
+    ax2.set_ylim(0, max(2.0, 1.25 * lower.h))
+    ax2.set_ylabel("lower CUSUM\n(improvement)")
+    ax2.legend(fontsize=7, frameon=False, ncol=2, loc="upper left")
+    ax2.grid(axis="y", lw=0.6)
     fig.autofmt_xdate()
     fig.tight_layout()
     ctx.save_figure(fig, "fig02_cusum")

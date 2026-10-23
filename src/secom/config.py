@@ -84,6 +84,16 @@ class CusumConfig:
     n_sim: int = 3000
     #: Length of each simulated path, in runs.
     max_run: int = 8000
+    #: The lower (improvement) CUSUM is designed for p1 = lower_ratio * p0.
+    lower_ratio: float = 0.5
+
+    def __post_init__(self) -> None:
+        if self.shift_ratio <= 1:
+            raise ConfigError("cusum.shift_ratio must exceed 1 (the upper CUSUM detects a rise)")
+        if not 0 < self.lower_ratio < 1:
+            raise ConfigError(
+                "cusum.lower_ratio must lie in (0, 1) (the lower CUSUM detects a fall)"
+            )
 
 
 @dataclass(frozen=True)

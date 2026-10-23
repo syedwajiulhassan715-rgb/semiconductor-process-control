@@ -98,6 +98,144 @@
         "signal_date": "2008-08-31",
         "alarm_episodes": 2
       }
+    },
+    "lower": {
+      "direction": "improvement (fail rate falls)",
+      "p0": 0.030683403068340307,
+      "p1": 0.015341701534170154,
+      "lower_ratio": 0.5,
+      "h": 1.5075256228446963,
+      "arl0_runs": 504.80966666666666,
+      "weights": {
+        "fail": -0.6931471805599453,
+        "pass": 0.01570339192844998
+      },
+      "detection": {
+        "pre_baseline": {
+          "n_runs": 449,
+          "n_fail": 58,
+          "rate": 0.1291759465478842,
+          "runs_to_signal": null,
+          "days_to_signal": null,
+          "signal_date": null,
+          "alarm_episodes": 0
+        },
+        "phase_ii": {
+          "n_runs": 401,
+          "n_fail": 24,
+          "rate": 0.059850374064837904,
+          "runs_to_signal": null,
+          "days_to_signal": null,
+          "signal_date": null,
+          "alarm_episodes": 0
+        },
+        "baseline_self_check": {
+          "n_runs": 717,
+          "n_fail": 22,
+          "rate": 0.030683403068340307,
+          "runs_to_signal": 328,
+          "days_to_signal": 16.51875,
+          "signal_date": "2008-09-10",
+          "alarm_episodes": 2
+        }
+      },
+      "all_runs": {
+        "n_signals": 2,
+        "signal_runs": [
+          777,
+          1026
+        ],
+        "signal_timestamps": [
+          "2008-09-10 21:56:00",
+          "2008-09-23 06:52:00"
+        ],
+        "signal_weeks": [
+          "2008-W37",
+          "2008-W39"
+        ],
+        "max_statistic": 1.521031081351498
+      }
+    },
+    "lower_retrospective": {
+      "note": "lower CUSUM designed on the weeks <= 34 rate and run from run 1; illustrates when the improvement would have been confirmed; the reference rate is estimated from the same data",
+      "p0": 0.1291759465478842,
+      "p1": 0.0645879732739421,
+      "h": 2.571123242378232,
+      "arl0_runs": 496.302,
+      "first_signal_run": 144,
+      "first_signal_timestamp": "2008-08-06 21:15:00",
+      "first_signal_week": "2008-W32",
+      "n_signals": 21,
+      "signal_runs": [
+        144,
+        463,
+        531,
+        567,
+        652,
+        688,
+        735,
+        771,
+        850,
+        897,
+        966,
+        1002,
+        1049,
+        1096,
+        1132,
+        1210,
+        1290,
+        1413,
+        1471,
+        1507,
+        1554
+      ],
+      "signal_timestamps": [
+        "2008-08-06 21:15:00",
+        "2008-08-28 03:45:00",
+        "2008-08-29 12:22:00",
+        "2008-08-30 05:38:00",
+        "2008-09-02 01:50:00",
+        "2008-09-02 13:27:00",
+        "2008-09-05 15:30:00",
+        "2008-09-09 03:53:00",
+        "2008-09-15 12:27:00",
+        "2008-09-19 02:44:00",
+        "2008-09-20 18:56:00",
+        "2008-09-22 00:28:00",
+        "2008-09-24 03:32:00",
+        "2008-09-26 02:26:00",
+        "2008-09-27 14:05:00",
+        "2008-10-01 01:11:00",
+        "2008-10-04 04:12:00",
+        "2008-10-08 05:35:00",
+        "2008-10-12 03:28:00",
+        "2008-10-14 20:01:00",
+        "2008-10-16 04:04:00"
+      ],
+      "signal_weeks": [
+        "2008-W32",
+        "2008-W35",
+        "2008-W35",
+        "2008-W35",
+        "2008-W36",
+        "2008-W36",
+        "2008-W36",
+        "2008-W37",
+        "2008-W38",
+        "2008-W38",
+        "2008-W38",
+        "2008-W39",
+        "2008-W39",
+        "2008-W39",
+        "2008-W39",
+        "2008-W40",
+        "2008-W40",
+        "2008-W41",
+        "2008-W41",
+        "2008-W42",
+        "2008-W42"
+      ],
+      "max_statistic": 2.6203461112348148
     }
   },
   "sensors": {
@@ -2399,6 +2537,2343 @@
           "p_block": 0.7221389305347327,
           "accepted": false
         }
+      ]
+    }
+  },
+  "cusum_robustness": {
+    "runs_per_day": 17.457989044656948,
+    "campaign_days": 89.75833333333334,
+    "p0_reestimate": {
+      "design_logic": "p1 = 2 * p0; h calibrated by simulation to ARL0 = 500 runs at p0 (3000 paths x 8000 runs, seed 20080719); alarms counted with reset on signal, each window charted from a fresh start",
+      "rates": {
+        "baseline": 0.030683403068340307,
+        "post_change": 0.04274937133277452,
+        "phase_ii": 0.059850374064837904,
+        "post_change_source": "changepoint segment after the estimated change"
+      },
+      "windows": {
+        "baseline_self_check": 717,
+        "phase_ii": 401,
+        "w35_onward": 1118,
+        "post_change_segment": 1193
+      },
+      "arl_simulation": {
+        "n_sim": 1500,
+        "max_run": 8000,
+        "seed": 20080730,
+        "note": "independent Bernoulli streams; censored run lengths count as max_run"
+      },
+      "designs": [
+        {
+          "label": null,
+          "p0": 0.02,
+          "p1": 0.04,
+          "h": 1.5275228619575485,
+          "arl0_design_runs": 499.70533333333333,
+          "arl_at_baseline_rate": {
+            "true_rate": 0.030683403068340307,
+            "arl_runs": 196.606,
+            "arl_days": 11.261663614124656,
+            "censored_frac": 0.0
+          },
+          "arl_at_post_change_rate": {
+            "true_rate": 0.04274937133277452,
+            "arl_runs": 104.714,
+            "arl_days": 5.9980562327164435,
+            "censored_frac": 0.0
+          },
+          "alarms": {
+            "baseline_self_check": 4,
+            "phase_ii": 6,
+            "w35_onward": 11,
+            "post_change_segment": 12
+          },
+          "pre_baseline_runs_to_signal": 12,
+          "expected_alarms_w35_onward_if_in_control_at_post_change_rate": 10.676700345703535
+        },
+        {
+          "label": null,
+          "p0": 0.025,
+          "p1": 0.05,
+          "h": 1.6816182732582023,
+          "arl0_design_runs": 497.05766666666665,
+          "arl_at_baseline_rate": {
+            "true_rate": 0.030683403068340307,
+            "arl_runs": 299.76,
+            "arl_days": 17.170362476068924,
+            "censored_frac": 0.0
+          },
+          "arl_at_post_change_rate": {
+            "true_rate": 0.04274937133277452,
+            "arl_runs": 144.818,
+            "arl_days": 8.295228025951927,
+            "censored_frac": 0.0
+          },
+          "alarms": {
+            "baseline_self_check": 3,
+            "phase_ii": 5,
+            "w35_onward": 8,
+            "post_change_segment": 9
+          },
+          "pre_baseline_runs_to_signal": 12,
+          "expected_alarms_w35_onward_if_in_control_at_post_change_rate": 7.72003480230358
+        },
+        {
+          "label": null,
+          "p0": 0.03,
+          "p1": 0.06,
+          "h": 1.7986865639686653,
+          "arl0_design_runs": 503.969,
+          "arl_at_baseline_rate": {
+            "true_rate": 0.030683403068340307,
+            "arl_runs": 461.5373333333333,
+            "arl_days": 26.437027320428278,
+            "censored_frac": 0.0
+          },
+          "arl_at_post_change_rate": {
+            "true_rate": 0.04274937133277452,
+            "arl_runs": 199.85466666666667,
+            "arl_days": 11.447748429412183,
+            "censored_frac": 0.0
+          },
+          "alarms": {
+            "baseline_self_check": 2,
+            "phase_ii": 4,
+            "w35_onward": 6,
+            "post_change_segment": 7
+          },
+          "pre_baseline_runs_to_signal": 12,
+          "expected_alarms_w35_onward_if_in_control_at_post_change_rate": 5.594065020581622
+        },
+        {
+          "label": "baseline",
+          "p0": 0.030683403068340307,
+          "p1": 0.061366806136680614,
+          "h": 1.8221094012260466,
+          "arl0_design_runs": 509.35133333333334,
+          "arl_at_baseline_rate": {
+            "true_rate": 0.030683403068340307,
+            "arl_runs": 494.46066666666667,
+            "arl_days": 28.322887899737648,
+            "censored_frac": 0.0
+          },
+          "arl_at_post_change_rate": {
+            "true_rate": 0.04274937133277452,
+            "arl_runs": 210.04733333333334,
+            "arl_days": 12.031588105367653,
+            "censored_frac": 0.0
+          },
+          "alarms": {
+            "baseline_self_check": 2,
+            "phase_ii": 4,
+            "w35_onward": 6,
+            "post_change_segment": 6
+          },
+          "pre_baseline_runs_to_signal": 12,
+          "expected_alarms_w35_onward_if_in_control_at_post_change_rate": 5.322609824452266
+        },
+        {
+          "label": null,
+          "p0": 0.035,
+          "p1": 0.07,
+          "h": 1.8947239518165524,
+          "arl0_design_runs": 490.17266666666666,
+          "arl_at_baseline_rate": {
+            "true_rate": 0.030683403068340307,
+            "arl_runs": 719.13,
+            "arl_days": 41.19202951499681,
+            "censored_frac": 0.0
+          },
+          "arl_at_post_change_rate": {
+            "true_rate": 0.04274937133277452,
+            "arl_runs": 274.10266666666666,
+            "arl_days": 15.70070103524073,
+            "censored_frac": 0.0
+          },
+          "alarms": {
+            "baseline_self_check": 1,
+            "phase_ii": 4,
+            "w35_onward": 5,
+            "post_change_segment": 5
+          },
+          "pre_baseline_runs_to_signal": 15,
+          "expected_alarms_w35_onward_if_in_control_at_post_change_rate": 4.0787636749247245
+        },
+        {
+          "label": null,
+          "p0": 0.04,
+          "p1": 0.08,
+          "h": 2.0065156221389735,
+          "arl0_design_runs": 491.2916666666667,
+          "arl_at_baseline_rate": {
+            "true_rate": 0.030683403068340307,
+            "arl_runs": 1183.1306666666667,
+            "arl_days": 67.77015747004184,
+            "censored_frac": 0.002
+          },
+          "arl_at_post_change_rate": {
+            "true_rate": 0.04274937133277452,
+            "arl_runs": 404.12466666666666,
+            "arl_days": 23.14840876763809,
+            "censored_frac": 0.0
+          },
+          "alarms": {
+            "baseline_self_check": 1,
+            "phase_ii": 4,
+            "w35_onward": 5,
+            "post_change_segment": 5
+          },
+          "pre_baseline_runs_to_signal": 15,
+          "expected_alarms_w35_onward_if_in_control_at_post_change_rate": 2.7664730520449963
+        },
+        {
+          "label": "post_change",
+          "p0": 0.04274937133277452,
+          "p1": 0.08549874266554904,
+          "h": 2.0730105638503993,
+          "arl0_design_runs": 498.97833333333335,
+          "arl_at_baseline_rate": {
+            "true_rate": 0.030683403068340307,
+            "arl_runs": 1582.292,
+            "arl_days": 90.63426468836418,
+            "censored_frac": 0.004666666666666667
+          },
+          "arl_at_post_change_rate": {
+            "true_rate": 0.04274937133277452,
+            "arl_runs": 503.3806666666667,
+            "arl_days": 28.833828763383682,
+            "censored_frac": 0.0
+          },
+          "alarms": {
+            "baseline_self_check": 1,
+            "phase_ii": 4,
+            "w35_onward": 5,
+            "post_change_segment": 5
+          },
+          "pre_baseline_runs_to_signal": 15,
+          "expected_alarms_w35_onward_if_in_control_at_post_change_rate": 2.2209831923090677
+        },
+        {
+          "label": null,
+          "p0": 0.045,
+          "p1": 0.09,
+          "h": 2.100825905799863,
+          "arl0_design_runs": 498.134,
+          "arl_at_baseline_rate": {
+            "true_rate": 0.030683403068340307,
+            "arl_runs": 1914.11,
+            "arl_days": 109.64092113380133,
+            "censored_frac": 0.013333333333333334
+          },
+          "arl_at_post_change_rate": {
+            "true_rate": 0.04274937133277452,
+            "arl_runs": 579.704,
+            "arl_days": 33.20565722186769,
+            "censored_frac": 0.0
+          },
+          "alarms": {
+            "baseline_self_check": 1,
+            "phase_ii": 3,
+            "w35_onward": 4,
+            "post_change_segment": 4
+          },
+          "pre_baseline_runs_to_signal": 15,
+          "expected_alarms_w35_onward_if_in_control_at_post_change_rate": 1.9285704428466943
+        },
+        {
+          "label": null,
+          "p0": 0.05,
+          "p1": 0.1,
+          "h": 2.2124630212783796,
+          "arl0_design_runs": 495.086,
+          "arl_at_baseline_rate": {
+            "true_rate": 0.030683403068340307,
+            "arl_runs": 2867.712,
+            "arl_days": 164.26359259731973,
+            "censored_frac": 0.08
+          },
+          "arl_at_post_change_rate": {
+            "true_rate": 0.04274937133277452,
+            "arl_runs": 856.5033333333333,
+            "arl_days": 49.060824310430405,
+            "censored_frac": 0.0
+          },
+          "alarms": {
+            "baseline_self_check": 0,
+            "phase_ii": 3,
+            "w35_onward": 3,
+            "post_change_segment": 3
+          },
+          "pre_baseline_runs_to_signal": 15,
+          "expected_alarms_w35_onward_if_in_control_at_post_change_rate": 1.3053072375666956
+        },
+        {
+          "label": "phase_ii",
+          "p0": 0.059850374064837904,
+          "p1": 0.11970074812967581,
+          "h": 2.3524991273880076,
+          "arl0_design_runs": 502.0226666666667,
+          "arl_at_baseline_rate": {
+            "true_rate": 0.030683403068340307,
+            "arl_runs": 4958.850666666666,
+            "arl_days": 284.0447805289655,
+            "censored_frac": 0.35133333333333333
+          },
+          "arl_at_post_change_rate": {
+            "true_rate": 0.04274937133277452,
+            "arl_runs": 1775.6373333333333,
+            "arl_days": 101.70915612281075,
+            "censored_frac": 0.012
+          },
+          "alarms": {
+            "baseline_self_check": 0,
+            "phase_ii": 1,
+            "w35_onward": 1,
+            "post_change_segment": 1
+          },
+          "pre_baseline_runs_to_signal": 41,
+          "expected_alarms_w35_onward_if_in_control_at_post_change_rate": 0.6296330782261843
+        },
+        {
+          "label": null,
+          "p0": 0.06,
+          "p1": 0.12,
+          "h": 2.3491584062576374,
+          "arl0_design_runs": 500.081,
+          "arl_at_baseline_rate": {
+            "true_rate": 0.030683403068340307,
+            "arl_runs": 4993.258,
+            "arl_days": 286.0156451712402,
+            "censored_frac": 0.35733333333333334
+          },
+          "arl_at_post_change_rate": {
+            "true_rate": 0.04274937133277452,
+            "arl_runs": 1806.8226666666667,
+            "arl_days": 103.49546342622138,
+            "censored_frac": 0.014
+          },
+          "alarms": {
+            "baseline_self_check": 0,
+            "phase_ii": 1,
+            "w35_onward": 1,
+            "post_change_segment": 1
+          },
+          "pre_baseline_runs_to_signal": 41,
+          "expected_alarms_w35_onward_if_in_control_at_post_change_rate": 0.6187657597093092
+        }
+      ],
+      "headline": {
+        "deployed": {
+          "label": "baseline",
+          "p0": 0.030683403068340307,
+          "p1": 0.061366806136680614,
+          "h": 1.8221094012260466,
+          "arl0_design_runs": 509.35133333333334,
+          "arl_at_baseline_rate": {
+            "true_rate": 0.030683403068340307,
+            "arl_runs": 494.46066666666667,
+            "arl_days": 28.322887899737648,
+            "censored_frac": 0.0
+          },
+          "arl_at_post_change_rate": {
+            "true_rate": 0.04274937133277452,
+            "arl_runs": 210.04733333333334,
+            "arl_days": 12.031588105367653,
+            "censored_frac": 0.0
+          },
+          "alarms": {
+            "baseline_self_check": 2,
+            "phase_ii": 4,
+            "w35_onward": 6,
+            "post_change_segment": 6
+          },
+          "pre_baseline_runs_to_signal": 12,
+          "expected_alarms_w35_onward_if_in_control_at_post_change_rate": 5.322609824452266
+        },
+        "redesigned": {
+          "label": "post_change",
+          "p0": 0.04274937133277452,
+          "p1": 0.08549874266554904,
+          "h": 2.0730105638503993,
+          "arl0_design_runs": 498.97833333333335,
+          "arl_at_baseline_rate": {
+            "true_rate": 0.030683403068340307,
+            "arl_runs": 1582.292,
+            "arl_days": 90.63426468836418,
+            "censored_frac": 0.004666666666666667
+          },
+          "arl_at_post_change_rate": {
+            "true_rate": 0.04274937133277452,
+            "arl_runs": 503.3806666666667,
+            "arl_days": 28.833828763383682,
+            "censored_frac": 0.0
+          },
+          "alarms": {
+            "baseline_self_check": 1,
+            "phase_ii": 4,
+            "w35_onward": 5,
+            "post_change_segment": 5
+          },
+          "pre_baseline_runs_to_signal": 15,
+          "expected_alarms_w35_onward_if_in_control_at_post_change_rate": 2.2209831923090677
+        },
+        "deployed_at_post_change": {
+          "true_rate": 0.04274937133277452,
+          "arl_runs": 210.04733333333334,
+          "arl_days": 12.031588105367653,
+          "censored_frac": 0.0
+        },
+        "redesigned_at_post_change": {
+          "true_rate": 0.04274937133277452,
+          "arl_runs": 503.3806666666667,
+          "arl_days": 28.833828763383682,
+          "censored_frac": 0.0
+        }
+      }
+    },
+    "overdispersion": {
+      "model": "beta-binomial random effect: every calendar day (or ISO week) of the observed campaign layout draws its own fail probability from a Beta with mean p and intraclass correlation rho; runs within it are Bernoulli at that probability",
+      "calibration": "rho solved (Brent) so the mean Laney sigma_z of simulated in-control campaigns at p0, charted on the observed weekly subgroups and centred on their own rate, equals the observed all-weeks sigma_z; verified on fresh streams",
+      "target_sigma_z": 1.4629703291084863,
+      "calibration_rate": 0.030683403068340307,
+      "observed": {
+        "weekly_sigma_z_all_weeks": 1.4629703291084863,
+        "weekly_sigma_z_w35_onward": 1.6556311600171563,
+        "daily_sigma_z_all_days": 1.1885974885087995,
+        "n_days": 86,
+        "n_weeks": 14
+      },
+      "independent_reference": {
+        "n_sim": 2000,
+        "mean_sigma_z": 0.9941193020032102,
+        "mc_se": 0.005608185442836714,
+        "q05": 0.622920595195257,
+        "median": 0.9683370155267708,
+        "q95": 1.4361155316199319,
+        "p_at_least_observed": 0.045,
+        "mean_daily_sigma_z": 0.8687289083803356,
+        "p_daily_at_least_observed": 0.0025
+      },
+      "levels": {
+        "week": {
+          "rho": 0.01229264814920382,
+          "calibration_mean_sigma_z": 1.4630300315841303,
+          "block_rate_sd_at_p0": 0.01912085519640447,
+          "block_rate_cv_at_p0": 0.6231660534464548,
+          "verification": {
+            "n_sim": 2000,
+            "mean_sigma_z": 1.4620460601684202,
+            "mc_se": 0.008307926668299916,
+            "q05": 0.9016955026480518,
+            "median": 1.4297304880995954,
+            "q95": 2.1165330890638074,
+            "p_at_least_observed": 0.459,
+            "mean_daily_sigma_z": 0.8454586205478283,
+            "p_daily_at_least_observed": 0.0025
+          }
+        },
+        "day": {
+          "rho": 0.0619626672595409,
+          "calibration_mean_sigma_z": 1.462965070615131,
+          "block_rate_sd_at_p0": 0.04292888801886015,
+          "block_rate_cv_at_p0": 1.3990914867964874,
+          "verification": {
+            "n_sim": 2000,
+            "mean_sigma_z": 1.435189528661395,
+            "mc_se": 0.007996951350551593,
+            "q05": 0.8895195671664987,
+            "median": 1.4003265243103833,
+            "q95": 2.0658477835173765,
+            "p_at_least_observed": 0.442,
+            "mean_daily_sigma_z": 1.0735501115660335,
+            "p_daily_at_least_observed": 0.1975
+          }
+        }
+      },
+      "in_control": [
+        {
+          "scheme": "cusum_upper",
+          "design_p0": 0.030683403068340307,
+          "h": 1.8221094012260466,
+          "true_rate_label": "baseline",
+          "true_rate": 0.030683403068340307,
+          "condition": "independent",
+          "arl_runs": 494.46066666666667,
+          "arl_days": 28.322887899737648,
+          "median_run_length": 343.5,
+          "censored_frac": 0.0,
+          "p_false_alarm_1567": 0.9633333333333334
+        },
+        {
+          "scheme": "cusum_lower",
+          "design_p0": 0.030683403068340307,
+          "h": 1.5075256228446963,
+          "true_rate_label": "baseline",
+          "true_rate": 0.030683403068340307,
+          "condition": "independent",
+          "arl_runs": 489.47266666666667,
+          "arl_days": 28.037173434730203,
+          "median_run_length": 363.0,
+          "censored_frac": 0.0,
+          "p_false_alarm_1567": 0.9733333333333334
+        },
+        {
+          "scheme": "cusum_upper",
+          "design_p0": 0.030683403068340307,
+          "h": 1.8221094012260466,
+          "true_rate_label": "post_change",
+          "true_rate": 0.04274937133277452,
+          "condition": "independent",
+          "arl_runs": 210.04733333333334,
+          "arl_days": 12.031588105367653,
+          "median_run_length": 153.5,
+          "censored_frac": 0.0,
+          "p_false_alarm_1567": 1.0
+        },
+        {
+          "scheme": "cusum_upper_post_change_design",
+          "design_p0": 0.04274937133277452,
+          "h": 2.0730105638503993,
+          "true_rate_label": "post_change",
+          "true_rate": 0.04274937133277452,
+          "condition": "independent",
+          "arl_runs": 503.3806666666667,
+          "arl_days": 28.833828763383682,
+          "median_run_length": 348.0,
+          "censored_frac": 0.0,
+          "p_false_alarm_1567": 0.96
+        },
+        {
+          "scheme": "cusum_upper",
+          "design_p0": 0.030683403068340307,
+          "h": 1.8221094012260466,
+          "true_rate_label": "baseline",
+          "true_rate": 0.030683403068340307,
+          "condition": "week",
+          "arl_runs": 434.9033333333333,
+          "arl_days": 24.91142205559101,
+          "median_run_length": 299.0,
+          "censored_frac": 0.0,
+          "p_false_alarm_1567": 0.978
+        },
+        {
+          "scheme": "cusum_lower",
+          "design_p0": 0.030683403068340307,
+          "h": 1.5075256228446963,
+          "true_rate_label": "baseline",
+          "true_rate": 0.030683403068340307,
+          "condition": "week",
+          "arl_runs": 358.7266666666667,
+          "arl_days": 20.54799471743601,
+          "median_run_length": 276.0,
+          "censored_frac": 0.0,
+          "p_false_alarm_1567": 0.9973333333333333
+        },
+        {
+          "scheme": "cusum_upper",
+          "design_p0": 0.030683403068340307,
+          "h": 1.8221094012260466,
+          "true_rate_label": "post_change",
+          "true_rate": 0.04274937133277452,
+          "condition": "week",
+          "arl_runs": 229.21866666666668,
+          "arl_days": 13.12972909310076,
+          "median_run_length": 155.5,
+          "censored_frac": 0.0,
+          "p_false_alarm_1567": 1.0
+        },
+        {
+          "scheme": "cusum_upper_post_change_design",
+          "design_p0": 0.04274937133277452,
+          "h": 2.0730105638503993,
+          "true_rate_label": "post_change",
+          "true_rate": 0.04274937133277452,
+          "condition": "week",
+          "arl_runs": 422.336,
+          "arl_days": 24.191560604126785,
+          "median_run_length": 281.0,
+          "censored_frac": 0.0,
+          "p_false_alarm_1567": 0.9753333333333334
+        },
+        {
+          "scheme": "cusum_upper",
+          "design_p0": 0.030683403068340307,
+          "h": 1.8221094012260466,
+          "true_rate_label": "baseline",
+          "true_rate": 0.030683403068340307,
+          "condition": "day",
+          "arl_runs": 293.156,
+          "arl_days": 16.792082939800043,
+          "median_run_length": 202.5,
+          "censored_frac": 0.0,
+          "p_false_alarm_1567": 0.996
+        },
+        {
+          "scheme": "cusum_lower",
+          "design_p0": 0.030683403068340307,
+          "h": 1.5075256228446963,
+          "true_rate_label": "baseline",
+          "true_rate": 0.030683403068340307,
+          "condition": "day",
+          "arl_runs": 270.8233333333333,
+          "arl_days": 15.512859622066228,
+          "median_run_length": 214.0,
+          "censored_frac": 0.0,
+          "p_false_alarm_1567": 0.9993333333333333
+        },
+        {
+          "scheme": "cusum_upper",
+          "design_p0": 0.030683403068340307,
+          "h": 1.8221094012260466,
+          "true_rate_label": "post_change",
+          "true_rate": 0.04274937133277452,
+          "condition": "day",
+          "arl_runs": 178.93933333333334,
+          "arl_days": 10.249710483585053,
+          "median_run_length": 129.0,
+          "censored_frac": 0.0,
+          "p_false_alarm_1567": 0.9993333333333333
+        },
+        {
+          "scheme": "cusum_upper_post_change_design",
+          "design_p0": 0.04274937133277452,
+          "h": 2.0730105638503993,
+          "true_rate_label": "post_change",
+          "true_rate": 0.04274937133277452,
+          "condition": "day",
+          "arl_runs": 285.646,
+          "arl_days": 16.361907392044248,
+          "median_run_length": 197.5,
+          "censored_frac": 0.0,
+          "p_false_alarm_1567": 0.9973333333333333
+        }
+      ],
+      "in_control_headline": {
+        "independent": {
+          "arl_runs": 494.46066666666667,
+          "arl_days": 28.322887899737648,
+          "p_false_alarm_1567": 0.9633333333333334
+        },
+        "week": {
+          "arl_runs": 434.9033333333333,
+          "arl_days": 24.91142205559101,
+          "p_false_alarm_1567": 0.978
+        },
+        "day": {
+          "arl_runs": 293.156,
+          "arl_days": 16.792082939800043,
+          "p_false_alarm_1567": 0.996
+        }
+      },
+      "detection_headline": {
+        "false_alarm_1567": {
+          "p_chart": {
+            "independent": 0.07325,
+            "week": 0.495,
+            "day": 0.49125
+          },
+          "laney_p_prime": {
+            "independent": 0.0035,
+            "week": 0.18675,
+            "day": 0.19375
+          },
+          "laney_p_prime_phase1_sigma": {
+            "independent": 0.0,
+            "week": 0.0285,
+            "day": 0.033
+          },
+          "g_chart": {
+            "independent": 0.05175,
+            "week": 0.3195,
+            "day": 0.3935
+          },
+          "cusum_upper": {
+            "independent": 0.966,
+            "week": 0.98025,
+            "day": 0.995
+          },
+          "cusum_upper_matched": {
+            "independent": 0.0765,
+            "week": 0.43425,
+            "day": 0.57225
+          },
+          "cusum_lower": {
+            "independent": 0.97275,
+            "week": 0.99125,
+            "day": 0.9995
+          },
+          "cusum_lower_matched": {
+            "independent": 0.04825,
+            "week": 0.34,
+            "day": 0.39475
+          }
+        },
+        "degradation_2x_p_detect_400": {
+          "p_chart": {
+            "independent": 0.4965,
+            "week": 0.56525,
+            "day": 0.56875
+          },
+          "laney_p_prime": {
+            "independent": 0.12825,
+            "week": 0.305,
+            "day": 0.305
+          },
+          "cusum_upper": {
+            "independent": 0.9915,
+            "week": 0.966,
+            "day": 0.98325
+          },
+          "cusum_upper_matched": {
+            "independent": 0.6995,
+            "week": 0.66575,
+            "day": 0.71
+          }
+        },
+        "degradation_2x_median_run_length": {
+          "p_chart": {
+            "independent": 401.0,
+            "week": 335.0,
+            "day": 335.0
+          },
+          "laney_p_prime": {
+            "independent": null,
+            "week": 669.0,
+            "day": 669.0
+          },
+          "cusum_upper": {
+            "independent": 76.0,
+            "week": 82.0,
+            "day": 76.0
+          },
+          "cusum_upper_matched": {
+            "independent": 292.0,
+            "week": 280.0,
+            "day": 256.0
+          }
+        },
+        "improvement_half_p_detect_1567": {
+          "g_chart": {
+            "independent": 0.60525,
+            "week": 0.8695,
+            "day": 0.92725
+          },
+          "cusum_lower": {
+            "independent": 1.0,
+            "week": 1.0,
+            "day": 1.0
+          },
+          "cusum_lower_matched": {
+            "independent": 0.94875,
+            "week": 0.9555,
+            "day": 0.9715
+          }
+        },
+        "improvement_half_median_run_length": {
+          "g_chart": {
+            "independent": 1203.5,
+            "week": 610.0,
+            "day": 524.5
+          },
+          "cusum_lower": {
+            "independent": 148.0,
+            "week": 142.0,
+            "day": 125.0
+          },
+          "cusum_lower_matched": {
+            "independent": 704.5,
+            "week": 571.0,
+            "day": 541.5
+          }
+        }
+      },
+      "detection_settings": {
+        "n_sim": 4000,
+        "seed": 20080719,
+        "horizons": [
+          120,
+          400,
+          1567
+        ],
+        "ratios": [
+          0.5,
+          1.0,
+          1.9505781002040352,
+          2.0,
+          4.209961530674226
+        ],
+        "note": "same seed, stream count and start weeks as shift_simulation, so the independent rows reproduce its table and every condition shares common random numbers"
+      },
+      "detection": [
+        {
+          "condition": "independent",
+          "scheme": "p_chart",
+          "ratio": 0.5,
+          "side": "improvement",
+          "fail_rate": 0.015341701534170154,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "independent",
+          "scheme": "laney_p_prime",
+          "ratio": 0.5,
+          "side": "improvement",
+          "fail_rate": 0.015341701534170154,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "independent",
+          "scheme": "laney_p_prime_phase1_sigma",
+          "ratio": 0.5,
+          "side": "improvement",
+          "fail_rate": 0.015341701534170154,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "independent",
+          "scheme": "g_chart",
+          "ratio": 0.5,
+          "side": "improvement",
+          "fail_rate": 0.015341701534170154,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.14075,
+          "p_detect_1567": 0.60525,
+          "median_run_length": 1203.5,
+          "mean_delay_given_detection": 765.9281288723668
+        },
+        {
+          "condition": "independent",
+          "scheme": "cusum_upper",
+          "ratio": 0.5,
+          "side": "improvement",
+          "fail_rate": 0.015341701534170154,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "independent",
+          "scheme": "cusum_upper_matched",
+          "ratio": 0.5,
+          "side": "improvement",
+          "fail_rate": 0.015341701534170154,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "independent",
+          "scheme": "cusum_lower",
+          "ratio": 0.5,
+          "side": "improvement",
+          "fail_rate": 0.015341701534170154,
+          "n_sim": 4000,
+          "p_detect_120": 0.3185,
+          "p_detect_400": 0.95475,
+          "p_detect_1567": 1.0,
+          "median_run_length": 148.0,
+          "mean_delay_given_detection": 185.24325
+        },
+        {
+          "condition": "independent",
+          "scheme": "cusum_lower_matched",
+          "ratio": 0.5,
+          "side": "improvement",
+          "fail_rate": 0.015341701534170154,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0935,
+          "p_detect_1567": 0.94875,
+          "median_run_length": 704.5,
+          "mean_delay_given_detection": 743.5773386034256
+        },
+        {
+          "condition": "independent",
+          "scheme": "p_chart",
+          "ratio": 1.0,
+          "side": "both",
+          "fail_rate": 0.030683403068340307,
+          "n_sim": 4000,
+          "p_detect_120": 0.0055,
+          "p_detect_400": 0.018,
+          "p_detect_1567": 0.07325,
+          "median_run_length": null,
+          "mean_delay_given_detection": 813.0409556313994
+        },
+        {
+          "condition": "independent",
+          "scheme": "laney_p_prime",
+          "ratio": 1.0,
+          "side": "both",
+          "fail_rate": 0.030683403068340307,
+          "n_sim": 4000,
+          "p_detect_120": 0.0005,
+          "p_detect_400": 0.00125,
+          "p_detect_1567": 0.0035,
+          "median_run_length": null,
+          "mean_delay_given_detection": 607.2142857142857
+        },
+        {
+          "condition": "independent",
+          "scheme": "laney_p_prime_phase1_sigma",
+          "ratio": 1.0,
+          "side": "both",
+          "fail_rate": 0.030683403068340307,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "independent",
+          "scheme": "g_chart",
+          "ratio": 1.0,
+          "side": "both",
+          "fail_rate": 0.030683403068340307,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0075,
+          "p_detect_1567": 0.05175,
+          "median_run_length": null,
+          "mean_delay_given_detection": 913.4444444444445
+        },
+        {
+          "condition": "independent",
+          "scheme": "cusum_upper",
+          "ratio": 1.0,
+          "side": "both",
+          "fail_rate": 0.030683403068340307,
+          "n_sim": 4000,
+          "p_detect_120": 0.186,
+          "p_detect_400": 0.5605,
+          "p_detect_1567": 0.966,
+          "median_run_length": 342.0,
+          "mean_delay_given_detection": 426.449016563147
+        },
+        {
+          "condition": "independent",
+          "scheme": "cusum_upper_matched",
+          "ratio": 1.0,
+          "side": "both",
+          "fail_rate": 0.030683403068340307,
+          "n_sim": 4000,
+          "p_detect_120": 0.00025,
+          "p_detect_400": 0.01325,
+          "p_detect_1567": 0.0765,
+          "median_run_length": null,
+          "mean_delay_given_detection": 860.7156862745098
+        },
+        {
+          "condition": "independent",
+          "scheme": "cusum_lower",
+          "ratio": 1.0,
+          "side": "both",
+          "fail_rate": 0.030683403068340307,
+          "n_sim": 4000,
+          "p_detect_120": 0.0915,
+          "p_detect_400": 0.54475,
+          "p_detect_1567": 0.97275,
+          "median_run_length": 363.0,
+          "mean_delay_given_detection": 445.39450012850165
+        },
+        {
+          "condition": "independent",
+          "scheme": "cusum_lower_matched",
+          "ratio": 1.0,
+          "side": "both",
+          "fail_rate": 0.030683403068340307,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.001,
+          "p_detect_1567": 0.04825,
+          "median_run_length": null,
+          "mean_delay_given_detection": 1037.7357512953367
+        },
+        {
+          "condition": "independent",
+          "scheme": "p_chart",
+          "ratio": 1.9505781002040352,
+          "side": "degradation",
+          "fail_rate": 0.059850374064837904,
+          "n_sim": 4000,
+          "p_detect_120": 0.07175,
+          "p_detect_400": 0.46225,
+          "p_detect_1567": 0.958,
+          "median_run_length": 415.0,
+          "mean_delay_given_detection": 494.81654488517745
+        },
+        {
+          "condition": "independent",
+          "scheme": "laney_p_prime",
+          "ratio": 1.9505781002040352,
+          "side": "degradation",
+          "fail_rate": 0.059850374064837904,
+          "n_sim": 4000,
+          "p_detect_120": 0.01525,
+          "p_detect_400": 0.1085,
+          "p_detect_1567": 0.41925,
+          "median_run_length": null,
+          "mean_delay_given_detection": 762.8598688133571
+        },
+        {
+          "condition": "independent",
+          "scheme": "laney_p_prime_phase1_sigma",
+          "ratio": 1.9505781002040352,
+          "side": "degradation",
+          "fail_rate": 0.059850374064837904,
+          "n_sim": 4000,
+          "p_detect_120": 0.00075,
+          "p_detect_400": 0.00375,
+          "p_detect_1567": 0.0135,
+          "median_run_length": null,
+          "mean_delay_given_detection": 697.5
+        },
+        {
+          "condition": "independent",
+          "scheme": "g_chart",
+          "ratio": 1.9505781002040352,
+          "side": "degradation",
+          "fail_rate": 0.059850374064837904,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "independent",
+          "scheme": "cusum_upper",
+          "ratio": 1.9505781002040352,
+          "side": "degradation",
+          "fail_rate": 0.059850374064837904,
+          "n_sim": 4000,
+          "p_detect_120": 0.70175,
+          "p_detect_400": 0.9895,
+          "p_detect_1567": 1.0,
+          "median_run_length": 79.0,
+          "mean_delay_given_detection": 102.7795
+        },
+        {
+          "condition": "independent",
+          "scheme": "cusum_upper_matched",
+          "ratio": 1.9505781002040352,
+          "side": "degradation",
+          "fail_rate": 0.059850374064837904,
+          "n_sim": 4000,
+          "p_detect_120": 0.07675,
+          "p_detect_400": 0.65875,
+          "p_detect_1567": 0.999,
+          "median_run_length": 311.0,
+          "mean_delay_given_detection": 364.8858858858859
+        },
+        {
+          "condition": "independent",
+          "scheme": "cusum_lower",
+          "ratio": 1.9505781002040352,
+          "side": "degradation",
+          "fail_rate": 0.059850374064837904,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "independent",
+          "scheme": "cusum_lower_matched",
+          "ratio": 1.9505781002040352,
+          "side": "degradation",
+          "fail_rate": 0.059850374064837904,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "independent",
+          "scheme": "p_chart",
+          "ratio": 2.0,
+          "side": "degradation",
+          "fail_rate": 0.061366806136680614,
+          "n_sim": 4000,
+          "p_detect_120": 0.07725,
+          "p_detect_400": 0.4965,
+          "p_detect_1567": 0.97025,
+          "median_run_length": 401.0,
+          "mean_delay_given_detection": 468.35583612471015
+        },
+        {
+          "condition": "independent",
+          "scheme": "laney_p_prime",
+          "ratio": 2.0,
+          "side": "degradation",
+          "fail_rate": 0.061366806136680614,
+          "n_sim": 4000,
+          "p_detect_120": 0.0175,
+          "p_detect_400": 0.12825,
+          "p_detect_1567": 0.472,
+          "median_run_length": null,
+          "mean_delay_given_detection": 742.8204449152543
+        },
+        {
+          "condition": "independent",
+          "scheme": "laney_p_prime_phase1_sigma",
+          "ratio": 2.0,
+          "side": "degradation",
+          "fail_rate": 0.061366806136680614,
+          "n_sim": 4000,
+          "p_detect_120": 0.001,
+          "p_detect_400": 0.00475,
+          "p_detect_1567": 0.0165,
+          "median_run_length": null,
+          "mean_delay_given_detection": 702.3333333333334
+        },
+        {
+          "condition": "independent",
+          "scheme": "g_chart",
+          "ratio": 2.0,
+          "side": "degradation",
+          "fail_rate": 0.061366806136680614,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "independent",
+          "scheme": "cusum_upper",
+          "ratio": 2.0,
+          "side": "degradation",
+          "fail_rate": 0.061366806136680614,
+          "n_sim": 4000,
+          "p_detect_120": 0.72325,
+          "p_detect_400": 0.9915,
+          "p_detect_1567": 1.0,
+          "median_run_length": 76.0,
+          "mean_delay_given_detection": 98.42625
+        },
+        {
+          "condition": "independent",
+          "scheme": "cusum_upper_matched",
+          "ratio": 2.0,
+          "side": "degradation",
+          "fail_rate": 0.061366806136680614,
+          "n_sim": 4000,
+          "p_detect_120": 0.0895,
+          "p_detect_400": 0.6995,
+          "p_detect_1567": 0.99975,
+          "median_run_length": 292.0,
+          "mean_delay_given_detection": 340.44736184046013
+        },
+        {
+          "condition": "independent",
+          "scheme": "cusum_lower",
+          "ratio": 2.0,
+          "side": "degradation",
+          "fail_rate": 0.061366806136680614,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "independent",
+          "scheme": "cusum_lower_matched",
+          "ratio": 2.0,
+          "side": "degradation",
+          "fail_rate": 0.061366806136680614,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "independent",
+          "scheme": "p_chart",
+          "ratio": 4.209961530674226,
+          "side": "degradation",
+          "fail_rate": 0.1291759465478842,
+          "n_sim": 4000,
+          "p_detect_120": 0.40225,
+          "p_detect_400": 0.999,
+          "p_detect_1567": 1.0,
+          "median_run_length": 138.0,
+          "mean_delay_given_detection": 131.31325
+        },
+        {
+          "condition": "independent",
+          "scheme": "laney_p_prime",
+          "ratio": 4.209961530674226,
+          "side": "degradation",
+          "fail_rate": 0.1291759465478842,
+          "n_sim": 4000,
+          "p_detect_120": 0.291,
+          "p_detect_400": 0.97925,
+          "p_detect_1567": 1.0,
+          "median_run_length": 156.0,
+          "mean_delay_given_detection": 158.65725
+        },
+        {
+          "condition": "independent",
+          "scheme": "laney_p_prime_phase1_sigma",
+          "ratio": 4.209961530674226,
+          "side": "degradation",
+          "fail_rate": 0.1291759465478842,
+          "n_sim": 4000,
+          "p_detect_120": 0.08375,
+          "p_detect_400": 0.696,
+          "p_detect_1567": 0.99925,
+          "median_run_length": 249.0,
+          "mean_delay_given_detection": 315.85864398298725
+        },
+        {
+          "condition": "independent",
+          "scheme": "g_chart",
+          "ratio": 4.209961530674226,
+          "side": "degradation",
+          "fail_rate": 0.1291759465478842,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "independent",
+          "scheme": "cusum_upper",
+          "ratio": 4.209961530674226,
+          "side": "degradation",
+          "fail_rate": 0.1291759465478842,
+          "n_sim": 4000,
+          "p_detect_120": 0.99825,
+          "p_detect_400": 1.0,
+          "p_detect_1567": 1.0,
+          "median_run_length": 26.0,
+          "mean_delay_given_detection": 29.57625
+        },
+        {
+          "condition": "independent",
+          "scheme": "cusum_upper_matched",
+          "ratio": 4.209961530674226,
+          "side": "degradation",
+          "fail_rate": 0.1291759465478842,
+          "n_sim": 4000,
+          "p_detect_120": 0.87075,
+          "p_detect_400": 1.0,
+          "p_detect_1567": 1.0,
+          "median_run_length": 76.0,
+          "mean_delay_given_detection": 82.132
+        },
+        {
+          "condition": "independent",
+          "scheme": "cusum_lower",
+          "ratio": 4.209961530674226,
+          "side": "degradation",
+          "fail_rate": 0.1291759465478842,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "independent",
+          "scheme": "cusum_lower_matched",
+          "ratio": 4.209961530674226,
+          "side": "degradation",
+          "fail_rate": 0.1291759465478842,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "week",
+          "scheme": "p_chart",
+          "ratio": 0.5,
+          "side": "improvement",
+          "fail_rate": 0.015341701534170154,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "week",
+          "scheme": "laney_p_prime",
+          "ratio": 0.5,
+          "side": "improvement",
+          "fail_rate": 0.015341701534170154,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "week",
+          "scheme": "laney_p_prime_phase1_sigma",
+          "ratio": 0.5,
+          "side": "improvement",
+          "fail_rate": 0.015341701534170154,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "week",
+          "scheme": "g_chart",
+          "ratio": 0.5,
+          "side": "improvement",
+          "fail_rate": 0.015341701534170154,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.32325,
+          "p_detect_1567": 0.8695,
+          "median_run_length": 610.0,
+          "mean_delay_given_detection": 618.139735480161
+        },
+        {
+          "condition": "week",
+          "scheme": "cusum_upper",
+          "ratio": 0.5,
+          "side": "improvement",
+          "fail_rate": 0.015341701534170154,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "week",
+          "scheme": "cusum_upper_matched",
+          "ratio": 0.5,
+          "side": "improvement",
+          "fail_rate": 0.015341701534170154,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "week",
+          "scheme": "cusum_lower",
+          "ratio": 0.5,
+          "side": "improvement",
+          "fail_rate": 0.015341701534170154,
+          "n_sim": 4000,
+          "p_detect_120": 0.42675,
+          "p_detect_400": 0.947,
+          "p_detect_1567": 1.0,
+          "median_run_length": 142.0,
+          "mean_delay_given_detection": 176.6915
+        },
+        {
+          "condition": "week",
+          "scheme": "cusum_lower_matched",
+          "ratio": 0.5,
+          "side": "improvement",
+          "fail_rate": 0.015341701534170154,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.22825,
+          "p_detect_1567": 0.9555,
+          "median_run_length": 571.0,
+          "mean_delay_given_detection": 642.9246467817896
+        },
+        {
+          "condition": "week",
+          "scheme": "p_chart",
+          "ratio": 1.0,
+          "side": "both",
+          "fail_rate": 0.030683403068340307,
+          "n_sim": 4000,
+          "p_detect_120": 0.02125,
+          "p_detect_400": 0.13725,
+          "p_detect_1567": 0.495,
+          "median_run_length": null,
+          "mean_delay_given_detection": 748.2136363636364
+        },
+        {
+          "condition": "week",
+          "scheme": "laney_p_prime",
+          "ratio": 1.0,
+          "side": "both",
+          "fail_rate": 0.030683403068340307,
+          "n_sim": 4000,
+          "p_detect_120": 0.00625,
+          "p_detect_400": 0.04175,
+          "p_detect_1567": 0.18675,
+          "median_run_length": null,
+          "mean_delay_given_detection": 828.8353413654619
+        },
+        {
+          "condition": "week",
+          "scheme": "laney_p_prime_phase1_sigma",
+          "ratio": 1.0,
+          "side": "both",
+          "fail_rate": 0.030683403068340307,
+          "n_sim": 4000,
+          "p_detect_120": 0.00025,
+          "p_detect_400": 0.004,
+          "p_detect_1567": 0.0285,
+          "median_run_length": null,
+          "mean_delay_given_detection": 927.1578947368421
+        },
+        {
+          "condition": "week",
+          "scheme": "g_chart",
+          "ratio": 1.0,
+          "side": "both",
+          "fail_rate": 0.030683403068340307,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0635,
+          "p_detect_1567": 0.3195,
+          "median_run_length": null,
+          "mean_delay_given_detection": 809.7887323943662
+        },
+        {
+          "condition": "week",
+          "scheme": "cusum_upper",
+          "ratio": 1.0,
+          "side": "both",
+          "fail_rate": 0.030683403068340307,
+          "n_sim": 4000,
+          "p_detect_120": 0.243,
+          "p_detect_400": 0.62275,
+          "p_detect_1567": 0.98025,
+          "median_run_length": 283.0,
+          "mean_delay_given_detection": 380.9994899260393
+        },
+        {
+          "condition": "week",
+          "scheme": "cusum_upper_matched",
+          "ratio": 1.0,
+          "side": "both",
+          "fail_rate": 0.030683403068340307,
+          "n_sim": 4000,
+          "p_detect_120": 0.0185,
+          "p_detect_400": 0.12275,
+          "p_detect_1567": 0.43425,
+          "median_run_length": null,
+          "mean_delay_given_detection": 752.6252158894646
+        },
+        {
+          "condition": "week",
+          "scheme": "cusum_lower",
+          "ratio": 1.0,
+          "side": "both",
+          "fail_rate": 0.030683403068340307,
+          "n_sim": 4000,
+          "p_detect_120": 0.17425,
+          "p_detect_400": 0.697,
+          "p_detect_1567": 0.99125,
+          "median_run_length": 260.0,
+          "mean_delay_given_detection": 340.6559899117276
+        },
+        {
+          "condition": "week",
+          "scheme": "cusum_lower_matched",
+          "ratio": 1.0,
+          "side": "both",
+          "fail_rate": 0.030683403068340307,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.02125,
+          "p_detect_1567": 0.34,
+          "median_run_length": null,
+          "mean_delay_given_detection": 919.5242647058824
+        },
+        {
+          "condition": "week",
+          "scheme": "p_chart",
+          "ratio": 1.9505781002040352,
+          "side": "degradation",
+          "fail_rate": 0.059850374064837904,
+          "n_sim": 4000,
+          "p_detect_120": 0.1005,
+          "p_detect_400": 0.5405,
+          "p_detect_1567": 0.98325,
+          "median_run_length": 367.0,
+          "mean_delay_given_detection": 441.4477498093059
+        },
+        {
+          "condition": "week",
+          "scheme": "laney_p_prime",
+          "ratio": 1.9505781002040352,
+          "side": "degradation",
+          "fail_rate": 0.059850374064837904,
+          "n_sim": 4000,
+          "p_detect_120": 0.04375,
+          "p_detect_400": 0.2865,
+          "p_detect_1567": 0.801,
+          "median_run_length": 717.0,
+          "mean_delay_given_detection": 630.5680399500624
+        },
+        {
+          "condition": "week",
+          "scheme": "laney_p_prime_phase1_sigma",
+          "ratio": 1.9505781002040352,
+          "side": "degradation",
+          "fail_rate": 0.059850374064837904,
+          "n_sim": 4000,
+          "p_detect_120": 0.00825,
+          "p_detect_400": 0.07025,
+          "p_detect_1567": 0.3165,
+          "median_run_length": null,
+          "mean_delay_given_detection": 789.5276461295418
+        },
+        {
+          "condition": "week",
+          "scheme": "g_chart",
+          "ratio": 1.9505781002040352,
+          "side": "degradation",
+          "fail_rate": 0.059850374064837904,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "week",
+          "scheme": "cusum_upper",
+          "ratio": 1.9505781002040352,
+          "side": "degradation",
+          "fail_rate": 0.059850374064837904,
+          "n_sim": 4000,
+          "p_detect_120": 0.6325,
+          "p_detect_400": 0.962,
+          "p_detect_1567": 1.0,
+          "median_run_length": 85.0,
+          "mean_delay_given_detection": 125.81525
+        },
+        {
+          "condition": "week",
+          "scheme": "cusum_upper_matched",
+          "ratio": 1.9505781002040352,
+          "side": "degradation",
+          "fail_rate": 0.059850374064837904,
+          "n_sim": 4000,
+          "p_detect_120": 0.145,
+          "p_detect_400": 0.63875,
+          "p_detect_1567": 0.99175,
+          "median_run_length": 296.5,
+          "mean_delay_given_detection": 381.86791025964203
+        },
+        {
+          "condition": "week",
+          "scheme": "cusum_lower",
+          "ratio": 1.9505781002040352,
+          "side": "degradation",
+          "fail_rate": 0.059850374064837904,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "week",
+          "scheme": "cusum_lower_matched",
+          "ratio": 1.9505781002040352,
+          "side": "degradation",
+          "fail_rate": 0.059850374064837904,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "week",
+          "scheme": "p_chart",
+          "ratio": 2.0,
+          "side": "degradation",
+          "fail_rate": 0.061366806136680614,
+          "n_sim": 4000,
+          "p_detect_120": 0.106,
+          "p_detect_400": 0.56525,
+          "p_detect_1567": 0.98775,
+          "median_run_length": 335.0,
+          "mean_delay_given_detection": 423.57479119210325
+        },
+        {
+          "condition": "week",
+          "scheme": "laney_p_prime",
+          "ratio": 2.0,
+          "side": "degradation",
+          "fail_rate": 0.061366806136680614,
+          "n_sim": 4000,
+          "p_detect_120": 0.0465,
+          "p_detect_400": 0.305,
+          "p_detect_1567": 0.8225,
+          "median_run_length": 669.0,
+          "mean_delay_given_detection": 618.0182370820669
+        },
+        {
+          "condition": "week",
+          "scheme": "laney_p_prime_phase1_sigma",
+          "ratio": 2.0,
+          "side": "degradation",
+          "fail_rate": 0.061366806136680614,
+          "n_sim": 4000,
+          "p_detect_120": 0.00975,
+          "p_detect_400": 0.07825,
+          "p_detect_1567": 0.34725,
+          "median_run_length": null,
+          "mean_delay_given_detection": 784.5694744420447
+        },
+        {
+          "condition": "week",
+          "scheme": "g_chart",
+          "ratio": 2.0,
+          "side": "degradation",
+          "fail_rate": 0.061366806136680614,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "week",
+          "scheme": "cusum_upper",
+          "ratio": 2.0,
+          "side": "degradation",
+          "fail_rate": 0.061366806136680614,
+          "n_sim": 4000,
+          "p_detect_120": 0.647,
+          "p_detect_400": 0.966,
+          "p_detect_1567": 1.0,
+          "median_run_length": 82.0,
+          "mean_delay_given_detection": 121.28675
+        },
+        {
+          "condition": "week",
+          "scheme": "cusum_upper_matched",
+          "ratio": 2.0,
+          "side": "degradation",
+          "fail_rate": 0.061366806136680614,
+          "n_sim": 4000,
+          "p_detect_120": 0.1595,
+          "p_detect_400": 0.66575,
+          "p_detect_1567": 0.994,
+          "median_run_length": 280.0,
+          "mean_delay_given_detection": 361.7323943661972
+        },
+        {
+          "condition": "week",
+          "scheme": "cusum_lower",
+          "ratio": 2.0,
+          "side": "degradation",
+          "fail_rate": 0.061366806136680614,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "week",
+          "scheme": "cusum_lower_matched",
+          "ratio": 2.0,
+          "side": "degradation",
+          "fail_rate": 0.061366806136680614,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "week",
+          "scheme": "p_chart",
+          "ratio": 4.209961530674226,
+          "side": "degradation",
+          "fail_rate": 0.1291759465478842,
+          "n_sim": 4000,
+          "p_detect_120": 0.37275,
+          "p_detect_400": 0.989,
+          "p_detect_1567": 1.0,
+          "median_run_length": 154.0,
+          "mean_delay_given_detection": 143.98775
+        },
+        {
+          "condition": "week",
+          "scheme": "laney_p_prime",
+          "ratio": 4.209961530674226,
+          "side": "degradation",
+          "fail_rate": 0.1291759465478842,
+          "n_sim": 4000,
+          "p_detect_120": 0.279,
+          "p_detect_400": 0.9455,
+          "p_detect_1567": 1.0,
+          "median_run_length": 166.0,
+          "mean_delay_given_detection": 179.07
+        },
+        {
+          "condition": "week",
+          "scheme": "laney_p_prime_phase1_sigma",
+          "ratio": 4.209961530674226,
+          "side": "degradation",
+          "fail_rate": 0.1291759465478842,
+          "n_sim": 4000,
+          "p_detect_120": 0.10975,
+          "p_detect_400": 0.7055,
+          "p_detect_1567": 0.9985,
+          "median_run_length": 249.0,
+          "mean_delay_given_detection": 319.7363545317977
+        },
+        {
+          "condition": "week",
+          "scheme": "g_chart",
+          "ratio": 4.209961530674226,
+          "side": "degradation",
+          "fail_rate": 0.1291759465478842,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "week",
+          "scheme": "cusum_upper",
+          "ratio": 4.209961530674226,
+          "side": "degradation",
+          "fail_rate": 0.1291759465478842,
+          "n_sim": 4000,
+          "p_detect_120": 0.98025,
+          "p_detect_400": 1.0,
+          "p_detect_1567": 1.0,
+          "median_run_length": 27.0,
+          "mean_delay_given_detection": 34.41375
+        },
+        {
+          "condition": "week",
+          "scheme": "cusum_upper_matched",
+          "ratio": 4.209961530674226,
+          "side": "degradation",
+          "fail_rate": 0.1291759465478842,
+          "n_sim": 4000,
+          "p_detect_120": 0.7755,
+          "p_detect_400": 0.999,
+          "p_detect_1567": 1.0,
+          "median_run_length": 78.0,
+          "mean_delay_given_detection": 92.5795
+        },
+        {
+          "condition": "week",
+          "scheme": "cusum_lower",
+          "ratio": 4.209961530674226,
+          "side": "degradation",
+          "fail_rate": 0.1291759465478842,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "week",
+          "scheme": "cusum_lower_matched",
+          "ratio": 4.209961530674226,
+          "side": "degradation",
+          "fail_rate": 0.1291759465478842,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "day",
+          "scheme": "p_chart",
+          "ratio": 0.5,
+          "side": "improvement",
+          "fail_rate": 0.015341701534170154,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "day",
+          "scheme": "laney_p_prime",
+          "ratio": 0.5,
+          "side": "improvement",
+          "fail_rate": 0.015341701534170154,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "day",
+          "scheme": "laney_p_prime_phase1_sigma",
+          "ratio": 0.5,
+          "side": "improvement",
+          "fail_rate": 0.015341701534170154,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "day",
+          "scheme": "g_chart",
+          "ratio": 0.5,
+          "side": "improvement",
+          "fail_rate": 0.015341701534170154,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.363,
+          "p_detect_1567": 0.92725,
+          "median_run_length": 524.5,
+          "mean_delay_given_detection": 584.8252898355352
+        },
+        {
+          "condition": "day",
+          "scheme": "cusum_upper",
+          "ratio": 0.5,
+          "side": "improvement",
+          "fail_rate": 0.015341701534170154,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "day",
+          "scheme": "cusum_upper_matched",
+          "ratio": 0.5,
+          "side": "improvement",
+          "fail_rate": 0.015341701534170154,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "day",
+          "scheme": "cusum_lower",
+          "ratio": 0.5,
+          "side": "improvement",
+          "fail_rate": 0.015341701534170154,
+          "n_sim": 4000,
+          "p_detect_120": 0.48325,
+          "p_detect_400": 0.98625,
+          "p_detect_1567": 1.0,
+          "median_run_length": 125.0,
+          "mean_delay_given_detection": 151.528
+        },
+        {
+          "condition": "day",
+          "scheme": "cusum_lower_matched",
+          "ratio": 0.5,
+          "side": "improvement",
+          "fail_rate": 0.015341701534170154,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.2445,
+          "p_detect_1567": 0.9715,
+          "median_run_length": 541.5,
+          "mean_delay_given_detection": 607.7588780236747
+        },
+        {
+          "condition": "day",
+          "scheme": "p_chart",
+          "ratio": 1.0,
+          "side": "both",
+          "fail_rate": 0.030683403068340307,
+          "n_sim": 4000,
+          "p_detect_120": 0.021,
+          "p_detect_400": 0.1285,
+          "p_detect_1567": 0.49125,
+          "median_run_length": null,
+          "mean_delay_given_detection": 753.175572519084
+        },
+        {
+          "condition": "day",
+          "scheme": "laney_p_prime",
+          "ratio": 1.0,
+          "side": "both",
+          "fail_rate": 0.030683403068340307,
+          "n_sim": 4000,
+          "p_detect_120": 0.00825,
+          "p_detect_400": 0.044,
+          "p_detect_1567": 0.19375,
+          "median_run_length": null,
+          "mean_delay_given_detection": 789.3987096774193
+        },
+        {
+          "condition": "day",
+          "scheme": "laney_p_prime_phase1_sigma",
+          "ratio": 1.0,
+          "side": "both",
+          "fail_rate": 0.030683403068340307,
+          "n_sim": 4000,
+          "p_detect_120": 0.00075,
+          "p_detect_400": 0.00475,
+          "p_detect_1567": 0.033,
+          "median_run_length": null,
+          "mean_delay_given_detection": 861.2348484848485
+        },
+        {
+          "condition": "day",
+          "scheme": "g_chart",
+          "ratio": 1.0,
+          "side": "both",
+          "fail_rate": 0.030683403068340307,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0735,
+          "p_detect_1567": 0.3935,
+          "median_run_length": null,
+          "mean_delay_given_detection": 816.3125794155019
+        },
+        {
+          "condition": "day",
+          "scheme": "cusum_upper",
+          "ratio": 1.0,
+          "side": "both",
+          "fail_rate": 0.030683403068340307,
+          "n_sim": 4000,
+          "p_detect_120": 0.3265,
+          "p_detect_400": 0.7395,
+          "p_detect_1567": 0.995,
+          "median_run_length": 210.0,
+          "mean_delay_given_detection": 287.7645728643216
+        },
+        {
+          "condition": "day",
+          "scheme": "cusum_upper_matched",
+          "ratio": 1.0,
+          "side": "both",
+          "fail_rate": 0.030683403068340307,
+          "n_sim": 4000,
+          "p_detect_120": 0.0365,
+          "p_detect_400": 0.17775,
+          "p_detect_1567": 0.57225,
+          "median_run_length": 1276.0,
+          "mean_delay_given_detection": 693.1459152468327
+        },
+        {
+          "condition": "day",
+          "scheme": "cusum_lower",
+          "ratio": 1.0,
+          "side": "both",
+          "fail_rate": 0.030683403068340307,
+          "n_sim": 4000,
+          "p_detect_120": 0.21975,
+          "p_detect_400": 0.8095,
+          "p_detect_1567": 0.9995,
+          "median_run_length": 215.0,
+          "mean_delay_given_detection": 269.67008504252124
+        },
+        {
+          "condition": "day",
+          "scheme": "cusum_lower_matched",
+          "ratio": 1.0,
+          "side": "both",
+          "fail_rate": 0.030683403068340307,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0265,
+          "p_detect_1567": 0.39475,
+          "median_run_length": null,
+          "mean_delay_given_detection": 903.7751741608613
+        },
+        {
+          "condition": "day",
+          "scheme": "p_chart",
+          "ratio": 1.9505781002040352,
+          "side": "degradation",
+          "fail_rate": 0.059850374064837904,
+          "n_sim": 4000,
+          "p_detect_120": 0.1015,
+          "p_detect_400": 0.54625,
+          "p_detect_1567": 0.98025,
+          "median_run_length": 367.0,
+          "mean_delay_given_detection": 434.76970160673295
+        },
+        {
+          "condition": "day",
+          "scheme": "laney_p_prime",
+          "ratio": 1.9505781002040352,
+          "side": "degradation",
+          "fail_rate": 0.059850374064837904,
+          "n_sim": 4000,
+          "p_detect_120": 0.04,
+          "p_detect_400": 0.2825,
+          "p_detect_1567": 0.8045,
+          "median_run_length": 717.0,
+          "mean_delay_given_detection": 636.0801740211311
+        },
+        {
+          "condition": "day",
+          "scheme": "laney_p_prime_phase1_sigma",
+          "ratio": 1.9505781002040352,
+          "side": "degradation",
+          "fail_rate": 0.059850374064837904,
+          "n_sim": 4000,
+          "p_detect_120": 0.00925,
+          "p_detect_400": 0.0745,
+          "p_detect_1567": 0.3165,
+          "median_run_length": null,
+          "mean_delay_given_detection": 794.913112164297
+        },
+        {
+          "condition": "day",
+          "scheme": "g_chart",
+          "ratio": 1.9505781002040352,
+          "side": "degradation",
+          "fail_rate": 0.059850374064837904,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "day",
+          "scheme": "cusum_upper",
+          "ratio": 1.9505781002040352,
+          "side": "degradation",
+          "fail_rate": 0.059850374064837904,
+          "n_sim": 4000,
+          "p_detect_120": 0.67675,
+          "p_detect_400": 0.98125,
+          "p_detect_1567": 1.0,
+          "median_run_length": 78.0,
+          "mean_delay_given_detection": 106.45275
+        },
+        {
+          "condition": "day",
+          "scheme": "cusum_upper_matched",
+          "ratio": 1.9505781002040352,
+          "side": "degradation",
+          "fail_rate": 0.059850374064837904,
+          "n_sim": 4000,
+          "p_detect_120": 0.1845,
+          "p_detect_400": 0.6855,
+          "p_detect_1567": 0.99525,
+          "median_run_length": 270.0,
+          "mean_delay_given_detection": 344.0580256217031
+        },
+        {
+          "condition": "day",
+          "scheme": "cusum_lower",
+          "ratio": 1.9505781002040352,
+          "side": "degradation",
+          "fail_rate": 0.059850374064837904,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "day",
+          "scheme": "cusum_lower_matched",
+          "ratio": 1.9505781002040352,
+          "side": "degradation",
+          "fail_rate": 0.059850374064837904,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "day",
+          "scheme": "p_chart",
+          "ratio": 2.0,
+          "side": "degradation",
+          "fail_rate": 0.061366806136680614,
+          "n_sim": 4000,
+          "p_detect_120": 0.10725,
+          "p_detect_400": 0.56875,
+          "p_detect_1567": 0.984,
+          "median_run_length": 335.0,
+          "mean_delay_given_detection": 417.9047256097561
+        },
+        {
+          "condition": "day",
+          "scheme": "laney_p_prime",
+          "ratio": 2.0,
+          "side": "degradation",
+          "fail_rate": 0.061366806136680614,
+          "n_sim": 4000,
+          "p_detect_120": 0.04325,
+          "p_detect_400": 0.305,
+          "p_detect_1567": 0.8315,
+          "median_run_length": 669.0,
+          "mean_delay_given_detection": 620.9539987973542
+        },
+        {
+          "condition": "day",
+          "scheme": "laney_p_prime_phase1_sigma",
+          "ratio": 2.0,
+          "side": "degradation",
+          "fail_rate": 0.061366806136680614,
+          "n_sim": 4000,
+          "p_detect_120": 0.00975,
+          "p_detect_400": 0.08125,
+          "p_detect_1567": 0.34725,
+          "median_run_length": null,
+          "mean_delay_given_detection": 796.4506839452844
+        },
+        {
+          "condition": "day",
+          "scheme": "g_chart",
+          "ratio": 2.0,
+          "side": "degradation",
+          "fail_rate": 0.061366806136680614,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "day",
+          "scheme": "cusum_upper",
+          "ratio": 2.0,
+          "side": "degradation",
+          "fail_rate": 0.061366806136680614,
+          "n_sim": 4000,
+          "p_detect_120": 0.68975,
+          "p_detect_400": 0.98325,
+          "p_detect_1567": 1.0,
+          "median_run_length": 76.0,
+          "mean_delay_given_detection": 102.756
+        },
+        {
+          "condition": "day",
+          "scheme": "cusum_upper_matched",
+          "ratio": 2.0,
+          "side": "degradation",
+          "fail_rate": 0.061366806136680614,
+          "n_sim": 4000,
+          "p_detect_120": 0.1985,
+          "p_detect_400": 0.71,
+          "p_detect_1567": 0.99625,
+          "median_run_length": 256.0,
+          "mean_delay_given_detection": 327.0429109159348
+        },
+        {
+          "condition": "day",
+          "scheme": "cusum_lower",
+          "ratio": 2.0,
+          "side": "degradation",
+          "fail_rate": 0.061366806136680614,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "day",
+          "scheme": "cusum_lower_matched",
+          "ratio": 2.0,
+          "side": "degradation",
+          "fail_rate": 0.061366806136680614,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "day",
+          "scheme": "p_chart",
+          "ratio": 4.209961530674226,
+          "side": "degradation",
+          "fail_rate": 0.1291759465478842,
+          "n_sim": 4000,
+          "p_detect_120": 0.3715,
+          "p_detect_400": 0.99075,
+          "p_detect_1567": 1.0,
+          "median_run_length": 138.0,
+          "mean_delay_given_detection": 142.176
+        },
+        {
+          "condition": "day",
+          "scheme": "laney_p_prime",
+          "ratio": 4.209961530674226,
+          "side": "degradation",
+          "fail_rate": 0.1291759465478842,
+          "n_sim": 4000,
+          "p_detect_120": 0.277,
+          "p_detect_400": 0.94675,
+          "p_detect_1567": 1.0,
+          "median_run_length": 166.0,
+          "mean_delay_given_detection": 180.18525
+        },
+        {
+          "condition": "day",
+          "scheme": "laney_p_prime_phase1_sigma",
+          "ratio": 4.209961530674226,
+          "side": "degradation",
+          "fail_rate": 0.1291759465478842,
+          "n_sim": 4000,
+          "p_detect_120": 0.11625,
+          "p_detect_400": 0.71325,
+          "p_detect_1567": 0.99825,
+          "median_run_length": 241.0,
+          "mean_delay_given_detection": 313.29025795141496
+        },
+        {
+          "condition": "day",
+          "scheme": "g_chart",
+          "ratio": 4.209961530674226,
+          "side": "degradation",
+          "fail_rate": 0.1291759465478842,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "day",
+          "scheme": "cusum_upper",
+          "ratio": 4.209961530674226,
+          "side": "degradation",
+          "fail_rate": 0.1291759465478842,
+          "n_sim": 4000,
+          "p_detect_120": 0.9785,
+          "p_detect_400": 1.0,
+          "p_detect_1567": 1.0,
+          "median_run_length": 28.0,
+          "mean_delay_given_detection": 35.56175
+        },
+        {
+          "condition": "day",
+          "scheme": "cusum_upper_matched",
+          "ratio": 4.209961530674226,
+          "side": "degradation",
+          "fail_rate": 0.1291759465478842,
+          "n_sim": 4000,
+          "p_detect_120": 0.776,
+          "p_detect_400": 0.99925,
+          "p_detect_1567": 1.0,
+          "median_run_length": 78.0,
+          "mean_delay_given_detection": 89.8285
+        },
+        {
+          "condition": "day",
+          "scheme": "cusum_lower",
+          "ratio": 4.209961530674226,
+          "side": "degradation",
+          "fail_rate": 0.1291759465478842,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        },
+        {
+          "condition": "day",
+          "scheme": "cusum_lower_matched",
+          "ratio": 4.209961530674226,
+          "side": "degradation",
+          "fail_rate": 0.1291759465478842,
+          "n_sim": 4000,
+          "p_detect_120": 0.0,
+          "p_detect_400": 0.0,
+          "p_detect_1567": 0.0,
+          "median_run_length": null,
+          "mean_delay_given_detection": null
+        }
+      ]
+    },
+    "lower_retrospective": {
+      "change_point_run": 375,
+      "first_signal_at_or_after_change": 463,
+      "runs_after_change": 88,
+      "hours_after_change": 153.1,
+      "signals_before_change": [
+        144
       ]
     }
   },

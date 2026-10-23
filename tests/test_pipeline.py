@@ -50,6 +50,7 @@ class TestConfig:
         assert cfg.cusum.target_arl0 == 500
         assert (cfg.cusum.n_sim, cfg.cusum.max_run) == (3000, 8000)
         assert cfg.cusum.shift_ratio == 2.0
+        assert cfg.cusum.lower_ratio == 0.5
         assert cfg.sensors.watchlist_max == 40
         assert cfg.sensors.watchlist_regime_top == 25
         assert cfg.model.train_frac == 0.70
@@ -77,6 +78,9 @@ class TestConfig:
             ({"regimes": {"baseline_weeks": [35]}}, "expected 2 items"),
             ({"regimes": {"baseline_weeks": [39, 35]}}, "ascending"),
             ({"figures": {"format": "jpg"}}, "figures.format"),
+            ({"cusum": {"lower_ratio": 1.5}}, "lower_ratio"),
+            ({"cusum": {"shift_ratio": 0.5}}, "shift_ratio"),
+            ({"cusum_robustness": {"arl_n_sims": 5}}, r"unknown key\(s\) in cusum_robustness"),
         ],
     )
     def test_invalid_config_raises(self, data: dict, match: str) -> None:

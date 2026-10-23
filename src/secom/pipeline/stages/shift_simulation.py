@@ -29,8 +29,16 @@ if TYPE_CHECKING:
     from matplotlib.figure import Figure
 
 NAME = "shift_simulation"
-REQUIRES = ("is_fail", "masks", "weekly", "laney", "laney_p1", "cusum_design")
-PRODUCES = ("power_table",)
+REQUIRES = (
+    "is_fail",
+    "masks",
+    "weekly",
+    "laney",
+    "laney_p1",
+    "cusum_design",
+    "cusum_lower_design",
+)
+PRODUCES = ("power_table", "monitor_design")
 
 
 @register_section("shift_simulation")
@@ -73,14 +81,19 @@ def _design(ctx: PipelineContext, sc: ShiftSimulationConfig) -> tuple[MonitorDes
     sizes = tuple(int(v) for v in ctx["weekly"]["n"])
     horizon = int(max(sc.horizons))
     lower_p1 = sc.improvement_ratio * p0
-    lower_h, lower_arl0 = calibrate_cusum_h(
-        p0,
-        lower_p1,
-        target_arl0=cfg.cusum.target_arl0,
-        n_sim=cfg.cusum.n_sim,
-        max_run=cfg.cusum.max_run,
-        seed=cfg.seed,
-    )
+    deployed_lower = ctx["cusum_lower_design"]
+    if np.isclose(deployed_lower["p1"], lower_p1):
+        # the cusum stage already calibrated this design on the real data
+        lower_h, lower_arl0 = float(deployed_lower["h"]), float(deployed_lower["arl0"])
+    else:
+        lower_h, lower_arl0 = calibrate_cusum_h(
+            p0,
+            lower_p1,
+            target_arl0=cfg.cusum.target_arl0,
+            n_sim=cfg.cusum.n_sim,
+            max_run=cfg.cusum.max_run,
+            seed=cfg.seed,
+        )
     g_lcl, g_ucl = g_limits(p0, sc.g_alpha)
 
     # False-alarm budgets the matched CUSUMs are held to, over the campaign.
@@ -230,6 +243,7 @@ def run(ctx: PipelineContext) -> None:
         "rows": [{k: _none(v) for k, v in rec.items()} for rec in table.to_dict(orient="records")],
     }
     ctx.artifacts["power_table"] = table
+    ctx.artifacts["monitor_design"] = design
     h2 = ctx.results["shift_simulation"]["headline"]["degradation_2x"]
     ctx.log(
         f"2x shift, P(detect in 400 runs): p-chart {h2['p_chart']['p_detect_400']:.2f}, "
