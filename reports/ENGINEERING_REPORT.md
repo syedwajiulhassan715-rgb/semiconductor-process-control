@@ -42,10 +42,11 @@ except §9, which `secom validate tep` writes to
    change: after it the process runs at 4.27%, so the 3.07% baseline may be
    optimistic (§8).
 9. **The implementation is validated where the truth is known.** On the
-   Tennessee Eastman benchmark the repo's PCA code reproduces published T²
-   detection rates to a mean gap of 0.027, and the textbook limits hold
-   (0.6% in-sample against a nominal 1%). On SECOM the same code alarms on
-   12.0%: the calibration failure is a property of the data, not a bug (§9).
+   Tennessee Eastman benchmark, under the published threshold rule, the repo's
+   PCA code reproduces the original paper's detection rates for all 21 faults
+   to a mean gap of 0.003 (T²) and 0.005 (SPE). Its textbook limits hold there
+   (0.6% in-sample against a nominal 1%); on SECOM the same code alarms on
+   12.0%, so the calibration failure is a property of the data, not a bug (§9).
 
 The deliverable is a **monitoring** system, not a prediction system. That
 conclusion is the finding, not a shortfall.
@@ -697,31 +698,52 @@ Three charts are applied, all at α = 0.01 per chart, the benchmark's setting
 and the SECOM multivariate stage's:
 
 - **PCA T²** and **PCA SPE** from `secom.mspc`, with A = 11 components
-  (54.2% of the training variance). The textbook F and Jackson–Mudholkar
-  limits are primary, because they are what the benchmark uses. The
-  cross-validated limits from the SECOM multivariate section are reported
-  alongside.
+  (54.2% of the training variance), under three sets of limits:
+  - **The benchmark's own rule**, for the comparison against the published
+    table. Russell et al. computed their missed-detection rates with each
+    threshold "adjusted to the tenth highest value for the normal operating
+    condition of the testing set", an empirical α of about 0.01, so that
+    statistics with different false-alarm rates are compared fairly.
+  - **The textbook F and Jackson–Mudholkar limits**, for the calibration
+    question below.
+  - **The cross-validated limits** from the SECOM multivariate section.
 - **Univariate**: one Shewhart chart per variable, with Šidák-widened limits
   (k = 3.728, per-chart α = 1.9×10⁻⁴). The family of 52 charts therefore
   false-alarms at α per sample.
 
-The benchmark detection rates come from the PCA missed-detection table in
-Chiang et al. (2001), **transcribed from secondary reproductions and not
-checked against the book in this work**. They are used as a qualitative
-reference, and no test asserts them exactly.
+The benchmark is the PCA columns of Russell, Chiang & Braatz (2000),
+*Chemometrics and Intelligent Laboratory Systems* 51, 81–93: missed-detection
+rates from Table 4 and false-alarm rates from Table 3, at A = 11 and α = 0.01
+(the same values appear in Chiang et al. 2001). Every value in
+`secom.tep.BENCHMARK_PCA_MISSED` was checked against Table 4 of the original
+paper. The check corrected one entry: fault 9's T² rate is 0.994, not the
+0.981 that secondary reproductions carry. Tests pin rows of both tables.
 
 ### The implementation reproduces the benchmark
 
 <p align="center"><img src="figures/fig13_tep_detection.png" width="100%" alt="Detection rate per TEP fault for T², SPE and the univariate scheme, with benchmark markers"></p>
 
-| | T² | SPE |
-|---|---:|---:|
-| Mean \|ours − benchmark\| over 21 faults | 0.027 | 0.074 |
-| Faults within ±0.05 of the benchmark | 17 / 21 | 10 / 21 |
-| Correlation with the benchmark across faults | 0.999 | 0.985 |
-| Largest gap | fault 11 (0.077) | fault 16 (0.255) |
+Under the benchmark's threshold rule the implementation reproduces the
+published table, not just its pattern:
 
-The qualitative facts all hold, and the test suite asserts each of them:
+| Against Table 4, same threshold rule | T² | SPE |
+|---|---:|---:|
+| Mean \|ours − benchmark\| over 21 faults | **0.003** | **0.005** |
+| Largest gap | fault 7 (0.013) | fault 10 (0.025) |
+| Faults within ±0.05 of the benchmark | 21 / 21 | 21 / 21 |
+| Correlation with the benchmark across faults | 1.000 | 1.000 |
+
+Five faults (1, 2, 6, 8, 13) agree on both statistics to within 0.0005, the
+rounding of the printed table, and seven more agree on one of the two. The
+test suite asserts the agreement against the published values.
+
+With the textbook limits instead, the gaps grow to 0.028 (T²) and 0.074 (SPE),
+and the SPE gap runs one way: textbook SPE detects more, because its limit sits
+lower (see the false alarms below). That difference is the threshold, not the
+model.
+
+The qualitative facts hold under the textbook limits too, and the tests assert
+each of them:
 
 - **Easy faults are caught.** Faults 1, 2, 6, 7, 8, 12, 13, 14 and 18 are
   detected on more than 85% of faulty samples by SPE. Fault 1 reaches 0.993
@@ -735,12 +757,19 @@ The qualitative facts all hold, and the test suite asserts each of them:
   in the 800 faulty samples. Fault 15 first does so after 674 samples (34
   hours), which no one would call a detection.
 
-The SPE gap runs one way. Ours is higher than the benchmark on average
-(+0.074), and the excess matches the SPE false-alarm rate below. Our SPE
-limit alarms on 7.1% of new normal samples, so part of the higher SPE
-"detection" on the weak faults (10, 16, 19, 20, 21) is false alarms. The
-benchmark's SPE false-alarm rate isn't reproduced here, so whether it used the
-same limit can't be checked.
+The published false-alarm rates for the textbook limits (Table 3) show where
+the two implementations still differ:
+
+| False alarms on the normal testing set (`d00_te`), textbook limits | T² | SPE |
+|---|---:|---:|
+| Russell et al. (2000), Table 3 | 1.4% | 1.6% |
+| This implementation | 1.7% | 7.1% |
+
+The T² limit matches. The Jackson–Mudholkar SPE limit here alarms about four
+times as often as the paper's Q threshold did on the same file. Since the
+detection rates agree once both use the same empirical threshold, the model
+and statistics are the same; the difference is confined to the formula-based
+SPE limit. Its cause was not traced further.
 
 Detection delays, measured as the first of six consecutive alarms after the
 onset (3 minutes per sample):
@@ -828,9 +857,10 @@ detection in the published benchmark.</sub></p>
   close to independent. The validation shows the implementation is correct
   and isolates the cause of the SECOM calibration failure. It does not show
   that any SECOM chart detects a real fab fault.
-- **Exact agreement with the published table.** The benchmark values are a
-  secondary transcription, and the benchmark's own false-alarm rates and
-  limit details weren't available to compare against.
+- **Why the formula-based SPE limit differs from the paper's.** Detection
+  agrees once both use the published threshold rule, but the
+  Jackson–Mudholkar SPE limit false-alarms at 7.1% on `d00_te` against the
+  paper's 1.6%. The cause was not traced.
 
 ---
 
@@ -1002,9 +1032,10 @@ Stated in full (**D22–D24**):
 - **That the monitoring detects real fab faults.** SECOM has no fault labels.
   §9 validates the implementation on Tennessee Eastman, a simulated process
   with different statistics; it does not transfer detection power to SECOM.
-- **Exact agreement with the published TEP benchmark.** The benchmark values
-  were transcribed from secondary sources, not checked against the original
-  table (**D38**).
+- **Why the TEP SPE limit is looser than the published one.** Detection rates
+  match the original paper under its threshold rule, but the formula-based
+  SPE limit false-alarms at 7.1% on normal data against the paper's 1.6%
+  (**D38**).
 - **Whether the sensor limits are too narrow.** The individuals charts take σ
   from the moving range. On SECOM that estimate is 0.78 of the overall SD, so
   the sensor limits are about 22% narrower than SD-based ones. Recorded rather

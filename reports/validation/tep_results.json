@@ -58,7 +58,10 @@
     "spe_limit": 41.687624608494936,
     "spe_limit_method": "jackson_mudholkar",
     "cv_t2_limit": 21.982475292492467,
-    "cv_spe_limit": 47.25308947169307
+    "cv_spe_limit": 47.25308947169307,
+    "benchmark_t2_limit": 29.982766791930786,
+    "benchmark_spe_limit": 50.87121159944476,
+    "benchmark_threshold_rule": "10th highest value on the normal testing set"
   },
   "false_alarms": {
     "d00_te": {
@@ -73,6 +76,12 @@
         "spe": 0.021875,
         "univariate": 0.03958333333333333,
         "either_pca": 0.06666666666666667
+      },
+      "benchmark": {
+        "t2": 0.009375,
+        "spe": 0.009375,
+        "univariate": 0.03958333333333333,
+        "either_pca": 0.01875
       }
     },
     "pre_fault_pooled": {
@@ -85,6 +94,21 @@
         "t2": 0.030654761904761903,
         "spe": 0.012797619047619047,
         "univariate": 0.022916666666666665
+      },
+      "benchmark": {
+        "t2": 0.0026785714285714286,
+        "spe": 0.00505952380952381,
+        "univariate": 0.022916666666666665
+      }
+    },
+    "benchmark_pca": {
+      "training": {
+        "t2": 0.002,
+        "spe": 0.004
+      },
+      "testing": {
+        "t2": 0.014,
+        "spe": 0.016
       }
     }
   },
@@ -130,6 +154,32 @@
         "spe": {
           "detection_rate": 0.9975,
           "false_alarm_rate_pre_fault": 0.0125,
+          "delay_first_samples": 2,
+          "delay_first_minutes": 6.0,
+          "delay_persistent_samples": 2,
+          "delay_persistent_minutes": 6.0
+        },
+        "univariate": {
+          "detection_rate": 0.9975,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 2,
+          "delay_first_minutes": 6.0,
+          "delay_persistent_samples": 2,
+          "delay_persistent_minutes": 6.0
+        }
+      },
+      "benchmark": {
+        "t2": {
+          "detection_rate": 0.9925,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 6,
+          "delay_first_minutes": 18.0,
+          "delay_persistent_samples": 6,
+          "delay_persistent_minutes": 18.0
+        },
+        "spe": {
+          "detection_rate": 0.9975,
+          "false_alarm_rate_pre_fault": 0.00625,
           "delay_first_samples": 2,
           "delay_first_minutes": 6.0,
           "delay_persistent_samples": 2,
@@ -204,6 +254,32 @@
           "delay_persistent_minutes": 30.0
         }
       },
+      "benchmark": {
+        "t2": {
+          "detection_rate": 0.98,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 16,
+          "delay_first_minutes": 48.0,
+          "delay_persistent_samples": 16,
+          "delay_persistent_minutes": 48.0
+        },
+        "spe": {
+          "detection_rate": 0.98625,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 11,
+          "delay_first_minutes": 33.0,
+          "delay_persistent_samples": 11,
+          "delay_persistent_minutes": 33.0
+        },
+        "univariate": {
+          "detection_rate": 0.9875,
+          "false_alarm_rate_pre_fault": 0.04375,
+          "delay_first_samples": 10,
+          "delay_first_minutes": 30.0,
+          "delay_persistent_samples": 10,
+          "delay_persistent_minutes": 30.0
+        }
+      },
       "benchmark_pca": {
         "t2_detection_rate": 0.98,
         "spe_detection_rate": 0.986
@@ -264,6 +340,32 @@
           "delay_persistent_minutes": 1068.0
         }
       },
+      "benchmark": {
+        "t2": {
+          "detection_rate": 0.0,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": null,
+          "delay_first_minutes": null,
+          "delay_persistent_samples": null,
+          "delay_persistent_minutes": null
+        },
+        "spe": {
+          "detection_rate": 0.01,
+          "false_alarm_rate_pre_fault": 0.0125,
+          "delay_first_samples": 42,
+          "delay_first_minutes": 126.0,
+          "delay_persistent_samples": null,
+          "delay_persistent_minutes": null
+        },
+        "univariate": {
+          "detection_rate": 0.04875,
+          "false_alarm_rate_pre_fault": 0.025,
+          "delay_first_samples": 50,
+          "delay_first_minutes": 150.0,
+          "delay_persistent_samples": 356,
+          "delay_persistent_minutes": 1068.0
+        }
+      },
       "benchmark_pca": {
         "t2_detection_rate": 0.0020000000000000018,
         "spe_detection_rate": 0.009000000000000008
@@ -310,6 +412,32 @@
         "spe": {
           "detection_rate": 0.9875,
           "false_alarm_rate_pre_fault": 0.025,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 2,
+          "delay_persistent_minutes": 6.0
+        },
+        "univariate": {
+          "detection_rate": 1.0,
+          "false_alarm_rate_pre_fault": 0.01875,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 0,
+          "delay_persistent_minutes": 0.0
+        }
+      },
+      "benchmark": {
+        "t2": {
+          "detection_rate": 0.04,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": null,
+          "delay_persistent_minutes": null
+        },
+        "spe": {
+          "detection_rate": 0.96625,
+          "false_alarm_rate_pre_fault": 0.00625,
           "delay_first_samples": 0,
           "delay_first_minutes": 0.0,
           "delay_persistent_samples": 2,
@@ -384,6 +512,32 @@
           "delay_persistent_minutes": 18.0
         }
       },
+      "benchmark": {
+        "t2": {
+          "detection_rate": 0.22375,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 15,
+          "delay_persistent_minutes": 45.0
+        },
+        "spe": {
+          "detection_rate": 0.2575,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 0,
+          "delay_persistent_minutes": 0.0
+        },
+        "univariate": {
+          "detection_rate": 0.30375,
+          "false_alarm_rate_pre_fault": 0.01875,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 6,
+          "delay_persistent_minutes": 18.0
+        }
+      },
       "benchmark_pca": {
         "t2_detection_rate": 0.22499999999999998,
         "spe_detection_rate": 0.254
@@ -444,6 +598,32 @@
           "delay_persistent_minutes": 0.0
         }
       },
+      "benchmark": {
+        "t2": {
+          "detection_rate": 0.98875,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 9,
+          "delay_first_minutes": 27.0,
+          "delay_persistent_samples": 9,
+          "delay_persistent_minutes": 27.0
+        },
+        "spe": {
+          "detection_rate": 1.0,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 0,
+          "delay_persistent_minutes": 0.0
+        },
+        "univariate": {
+          "detection_rate": 1.0,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 0,
+          "delay_persistent_minutes": 0.0
+        }
+      },
       "benchmark_pca": {
         "t2_detection_rate": 0.989,
         "spe_detection_rate": 1.0
@@ -482,6 +662,32 @@
         "t2": {
           "detection_rate": 0.9825,
           "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 0,
+          "delay_persistent_minutes": 0.0
+        },
+        "spe": {
+          "detection_rate": 1.0,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 0,
+          "delay_persistent_minutes": 0.0
+        },
+        "univariate": {
+          "detection_rate": 1.0,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 0,
+          "delay_persistent_minutes": 0.0
+        }
+      },
+      "benchmark": {
+        "t2": {
+          "detection_rate": 0.9025,
+          "false_alarm_rate_pre_fault": 0.0,
           "delay_first_samples": 0,
           "delay_first_minutes": 0.0,
           "delay_persistent_samples": 0,
@@ -564,6 +770,32 @@
           "delay_persistent_minutes": 21.0
         }
       },
+      "benchmark": {
+        "t2": {
+          "detection_rate": 0.96625,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 22,
+          "delay_first_minutes": 66.0,
+          "delay_persistent_samples": 22,
+          "delay_persistent_minutes": 66.0
+        },
+        "spe": {
+          "detection_rate": 0.97625,
+          "false_alarm_rate_pre_fault": 0.0125,
+          "delay_first_samples": 19,
+          "delay_first_minutes": 57.0,
+          "delay_persistent_samples": 19,
+          "delay_persistent_minutes": 57.0
+        },
+        "univariate": {
+          "detection_rate": 0.98875,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 7,
+          "delay_first_minutes": 21.0,
+          "delay_persistent_samples": 7,
+          "delay_persistent_minutes": 21.0
+        }
+      },
       "benchmark_pca": {
         "t2_detection_rate": 0.966,
         "spe_detection_rate": 0.976
@@ -624,8 +856,34 @@
           "delay_persistent_minutes": null
         }
       },
+      "benchmark": {
+        "t2": {
+          "detection_rate": 0.0025,
+          "false_alarm_rate_pre_fault": 0.01875,
+          "delay_first_samples": 8,
+          "delay_first_minutes": 24.0,
+          "delay_persistent_samples": null,
+          "delay_persistent_minutes": null
+        },
+        "spe": {
+          "detection_rate": 0.01875,
+          "false_alarm_rate_pre_fault": 0.0125,
+          "delay_first_samples": 112,
+          "delay_first_minutes": 336.0,
+          "delay_persistent_samples": null,
+          "delay_persistent_minutes": null
+        },
+        "univariate": {
+          "detection_rate": 0.0575,
+          "false_alarm_rate_pre_fault": 0.13125,
+          "delay_first_samples": 5,
+          "delay_first_minutes": 15.0,
+          "delay_persistent_samples": null,
+          "delay_persistent_minutes": null
+        }
+      },
       "benchmark_pca": {
-        "t2_detection_rate": 0.019000000000000017,
+        "t2_detection_rate": 0.006000000000000005,
         "spe_detection_rate": 0.019000000000000017
       }
     },
@@ -684,6 +942,32 @@
           "delay_persistent_minutes": 90.0
         }
       },
+      "benchmark": {
+        "t2": {
+          "detection_rate": 0.33375,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 27,
+          "delay_first_minutes": 81.0,
+          "delay_persistent_samples": 95,
+          "delay_persistent_minutes": 285.0
+        },
+        "spe": {
+          "detection_rate": 0.36625,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 26,
+          "delay_first_minutes": 78.0,
+          "delay_persistent_samples": 48,
+          "delay_persistent_minutes": 144.0
+        },
+        "univariate": {
+          "detection_rate": 0.57,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 27,
+          "delay_first_minutes": 81.0,
+          "delay_persistent_samples": 30,
+          "delay_persistent_minutes": 90.0
+        }
+      },
       "benchmark_pca": {
         "t2_detection_rate": 0.33399999999999996,
         "spe_detection_rate": 0.34099999999999997
@@ -729,6 +1013,32 @@
         },
         "spe": {
           "detection_rate": 0.7,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 6,
+          "delay_first_minutes": 18.0,
+          "delay_persistent_samples": 10,
+          "delay_persistent_minutes": 30.0
+        },
+        "univariate": {
+          "detection_rate": 0.76875,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 5,
+          "delay_first_minutes": 15.0,
+          "delay_persistent_samples": 5,
+          "delay_persistent_minutes": 15.0
+        }
+      },
+      "benchmark": {
+        "t2": {
+          "detection_rate": 0.205,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 6,
+          "delay_first_minutes": 18.0,
+          "delay_persistent_samples": 303,
+          "delay_persistent_minutes": 909.0
+        },
+        "spe": {
+          "detection_rate": 0.65375,
           "false_alarm_rate_pre_fault": 0.00625,
           "delay_first_samples": 6,
           "delay_first_minutes": 18.0,
@@ -804,6 +1114,32 @@
           "delay_persistent_minutes": 18.0
         }
       },
+      "benchmark": {
+        "t2": {
+          "detection_rate": 0.97125,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 2,
+          "delay_first_minutes": 6.0,
+          "delay_persistent_samples": 21,
+          "delay_persistent_minutes": 63.0
+        },
+        "spe": {
+          "detection_rate": 0.97625,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 2,
+          "delay_first_minutes": 6.0,
+          "delay_persistent_samples": 7,
+          "delay_persistent_minutes": 21.0
+        },
+        "univariate": {
+          "detection_rate": 0.98875,
+          "false_alarm_rate_pre_fault": 0.03125,
+          "delay_first_samples": 2,
+          "delay_first_minutes": 6.0,
+          "delay_persistent_samples": 6,
+          "delay_persistent_minutes": 18.0
+        }
+      },
       "benchmark_pca": {
         "t2_detection_rate": 0.971,
         "spe_detection_rate": 0.975
@@ -842,6 +1178,32 @@
         "t2": {
           "detection_rate": 0.94,
           "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 48,
+          "delay_first_minutes": 144.0,
+          "delay_persistent_samples": 48,
+          "delay_persistent_minutes": 144.0
+        },
+        "spe": {
+          "detection_rate": 0.955,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 36,
+          "delay_first_minutes": 108.0,
+          "delay_persistent_samples": 36,
+          "delay_persistent_minutes": 108.0
+        },
+        "univariate": {
+          "detection_rate": 0.9475,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 42,
+          "delay_first_minutes": 126.0,
+          "delay_persistent_samples": 42,
+          "delay_persistent_minutes": 126.0
+        }
+      },
+      "benchmark": {
+        "t2": {
+          "detection_rate": 0.94,
+          "false_alarm_rate_pre_fault": 0.0,
           "delay_first_samples": 48,
           "delay_first_minutes": 144.0,
           "delay_persistent_samples": 48,
@@ -924,6 +1286,32 @@
           "delay_persistent_minutes": 0.0
         }
       },
+      "benchmark": {
+        "t2": {
+          "detection_rate": 0.83125,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 1,
+          "delay_first_minutes": 3.0,
+          "delay_persistent_samples": 3,
+          "delay_persistent_minutes": 9.0
+        },
+        "spe": {
+          "detection_rate": 1.0,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 0,
+          "delay_persistent_minutes": 0.0
+        },
+        "univariate": {
+          "detection_rate": 1.0,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 0,
+          "delay_persistent_minutes": 0.0
+        }
+      },
       "benchmark_pca": {
         "t2_detection_rate": 0.842,
         "spe_detection_rate": 1.0
@@ -970,6 +1358,32 @@
         "spe": {
           "detection_rate": 0.05875,
           "false_alarm_rate_pre_fault": 0.0125,
+          "delay_first_samples": 91,
+          "delay_first_minutes": 273.0,
+          "delay_persistent_samples": 739,
+          "delay_persistent_minutes": 2217.0
+        },
+        "univariate": {
+          "detection_rate": 0.12125,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 238,
+          "delay_first_minutes": 714.0,
+          "delay_persistent_samples": 683,
+          "delay_persistent_minutes": 2049.0
+        }
+      },
+      "benchmark": {
+        "t2": {
+          "detection_rate": 0.01375,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 572,
+          "delay_first_minutes": 1716.0,
+          "delay_persistent_samples": null,
+          "delay_persistent_minutes": null
+        },
+        "spe": {
+          "detection_rate": 0.035,
+          "false_alarm_rate_pre_fault": 0.0,
           "delay_first_samples": 91,
           "delay_first_minutes": 273.0,
           "delay_persistent_samples": 739,
@@ -1044,6 +1458,32 @@
           "delay_persistent_minutes": 84.0
         }
       },
+      "benchmark": {
+        "t2": {
+          "detection_rate": 0.1625,
+          "false_alarm_rate_pre_fault": 0.01875,
+          "delay_first_samples": 37,
+          "delay_first_minutes": 111.0,
+          "delay_persistent_samples": 311,
+          "delay_persistent_minutes": 933.0
+        },
+        "spe": {
+          "detection_rate": 0.26375,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 14,
+          "delay_first_minutes": 42.0,
+          "delay_persistent_samples": 195,
+          "delay_persistent_minutes": 585.0
+        },
+        "univariate": {
+          "detection_rate": 0.4925,
+          "false_alarm_rate_pre_fault": 0.1125,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 28,
+          "delay_persistent_minutes": 84.0
+        }
+      },
       "benchmark_pca": {
         "t2_detection_rate": 0.16600000000000004,
         "spe_detection_rate": 0.245
@@ -1090,6 +1530,32 @@
         "spe": {
           "detection_rate": 0.91625,
           "false_alarm_rate_pre_fault": 0.0125,
+          "delay_first_samples": 24,
+          "delay_first_minutes": 72.0,
+          "delay_persistent_samples": 24,
+          "delay_persistent_minutes": 72.0
+        },
+        "univariate": {
+          "detection_rate": 0.9375,
+          "false_alarm_rate_pre_fault": 0.0125,
+          "delay_first_samples": 0,
+          "delay_first_minutes": 0.0,
+          "delay_persistent_samples": 21,
+          "delay_persistent_minutes": 63.0
+        }
+      },
+      "benchmark": {
+        "t2": {
+          "detection_rate": 0.74125,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 28,
+          "delay_first_minutes": 84.0,
+          "delay_persistent_samples": 28,
+          "delay_persistent_minutes": 84.0
+        },
+        "spe": {
+          "detection_rate": 0.895,
+          "false_alarm_rate_pre_fault": 0.00625,
           "delay_first_samples": 24,
           "delay_first_minutes": 72.0,
           "delay_persistent_samples": 24,
@@ -1164,6 +1630,32 @@
           "delay_persistent_minutes": 252.0
         }
       },
+      "benchmark": {
+        "t2": {
+          "detection_rate": 0.88625,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 88,
+          "delay_first_minutes": 264.0,
+          "delay_persistent_samples": 92,
+          "delay_persistent_minutes": 276.0
+        },
+        "spe": {
+          "detection_rate": 0.89875,
+          "false_alarm_rate_pre_fault": 0.00625,
+          "delay_first_samples": 17,
+          "delay_first_minutes": 51.0,
+          "delay_persistent_samples": 83,
+          "delay_persistent_minutes": 249.0
+        },
+        "univariate": {
+          "detection_rate": 0.9,
+          "false_alarm_rate_pre_fault": 0.01875,
+          "delay_first_samples": 3,
+          "delay_first_minutes": 9.0,
+          "delay_persistent_samples": 84,
+          "delay_persistent_minutes": 252.0
+        }
+      },
       "benchmark_pca": {
         "t2_detection_rate": 0.887,
         "spe_detection_rate": 0.899
@@ -1209,6 +1701,32 @@
         },
         "spe": {
           "detection_rate": 0.2175,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 10,
+          "delay_first_minutes": 30.0,
+          "delay_persistent_samples": null,
+          "delay_persistent_minutes": null
+        },
+        "univariate": {
+          "detection_rate": 0.195,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 10,
+          "delay_first_minutes": 30.0,
+          "delay_persistent_samples": null,
+          "delay_persistent_minutes": null
+        }
+      },
+      "benchmark": {
+        "t2": {
+          "detection_rate": 0.0025,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 635,
+          "delay_first_minutes": 1905.0,
+          "delay_persistent_samples": null,
+          "delay_persistent_minutes": null
+        },
+        "spe": {
+          "detection_rate": 0.13625,
           "false_alarm_rate_pre_fault": 0.0,
           "delay_first_samples": 10,
           "delay_first_minutes": 30.0,
@@ -1284,6 +1802,32 @@
           "delay_persistent_minutes": 222.0
         }
       },
+      "benchmark": {
+        "t2": {
+          "detection_rate": 0.29375,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 86,
+          "delay_first_minutes": 258.0,
+          "delay_persistent_samples": 86,
+          "delay_persistent_minutes": 258.0
+        },
+        "spe": {
+          "detection_rate": 0.4575,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 82,
+          "delay_first_minutes": 246.0,
+          "delay_persistent_samples": 86,
+          "delay_persistent_minutes": 258.0
+        },
+        "univariate": {
+          "detection_rate": 0.585,
+          "false_alarm_rate_pre_fault": 0.0125,
+          "delay_first_samples": 67,
+          "delay_first_minutes": 201.0,
+          "delay_persistent_samples": 74,
+          "delay_persistent_minutes": 222.0
+        }
+      },
       "benchmark_pca": {
         "t2_detection_rate": 0.29900000000000004,
         "spe_detection_rate": 0.44999999999999996
@@ -1344,20 +1888,65 @@
           "delay_persistent_minutes": 1515.0
         }
       },
+      "benchmark": {
+        "t2": {
+          "detection_rate": 0.2575,
+          "false_alarm_rate_pre_fault": 0.0,
+          "delay_first_samples": 558,
+          "delay_first_minutes": 1674.0,
+          "delay_persistent_samples": 562,
+          "delay_persistent_minutes": 1686.0
+        },
+        "spe": {
+          "detection_rate": 0.43625,
+          "false_alarm_rate_pre_fault": 0.0125,
+          "delay_first_samples": 13,
+          "delay_first_minutes": 39.0,
+          "delay_persistent_samples": 284,
+          "delay_persistent_minutes": 852.0
+        },
+        "univariate": {
+          "detection_rate": 0.4175,
+          "false_alarm_rate_pre_fault": 0.03125,
+          "delay_first_samples": 335,
+          "delay_first_minutes": 1005.0,
+          "delay_persistent_samples": 505,
+          "delay_persistent_minutes": 1515.0
+        }
+      },
       "benchmark_pca": {
         "t2_detection_rate": 0.264,
         "spe_detection_rate": 0.43000000000000005
       }
     }
   ],
+  "benchmark_source": "Russell, Chiang & Braatz (2000), Fault detection in industrial processes using canonical variate analysis and dynamic principal component analysis, Chemometrics and Intelligent Laboratory Systems 51, 81-93: Table 4 (missed detection) and Table 3 (false alarms); PCA with a = 11, alpha = 0.01",
   "benchmark_comparison": {
     "t2": {
-      "mean_abs_diff": 0.027476190476190473,
+      "mean_abs_diff": 0.0026666666666666713,
+      "max_abs_diff": 0.012500000000000067,
+      "max_abs_diff_fault": 7,
+      "n_within_0_05": 21,
+      "mean_diff": -0.0023809523809523786,
+      "pearson_r": 0.999959673625619
+    },
+    "spe": {
+      "mean_abs_diff": 0.004726190476190484,
+      "max_abs_diff": 0.02525000000000005,
+      "max_abs_diff_fault": 10,
+      "n_within_0_05": 21,
+      "mean_diff": 0.0046785714285714364,
+      "pearson_r": 0.9998836257690822
+    }
+  },
+  "benchmark_comparison_textbook_limits": {
+    "t2": {
+      "mean_abs_diff": 0.0280952380952381,
       "max_abs_diff": 0.07650000000000001,
       "max_abs_diff_fault": 11,
       "n_within_0_05": 17,
-      "mean_diff": 0.027476190476190473,
-      "pearson_r": 0.9985542892459327
+      "mean_diff": 0.0280952380952381,
+      "pearson_r": 0.9986586494635069
     },
     "spe": {
       "mean_abs_diff": 0.07402380952380952,

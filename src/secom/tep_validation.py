@@ -53,8 +53,8 @@ class TEPValidationConfig:
     #: per-chart false-alarm probability, matching the published PCA benchmark
     #: and the SECOM multivariate stage
     alpha: float = 0.01
-    #: retained components. 11 is the setting commonly attributed to the
-    #: Chiang et al. (2001) PCA benchmark on these files (see D38)
+    #: retained components. 11 is the order the published benchmark used for
+    #: normal operation (Russell et al. 2000, Table 2; see D38)
     n_components: int = 11
     #: alternative component counts for the sensitivity check; the SECOM
     #: variance rule (80%) is added automatically
@@ -117,18 +117,43 @@ def fit_monitors(train: np.ndarray, cfg: TEPValidationConfig) -> Monitors:
     )
 
 
-def alarms(mon: Monitors, x: np.ndarray, *, limits: str = "textbook") -> dict[str, np.ndarray]:
+def rank_threshold(stat: np.ndarray, rank: int = tep.BENCHMARK_THRESHOLD_RANK) -> float:
+    """The ``rank``-th highest value of ``stat``: the published benchmark's threshold rule."""
+    s = np.sort(np.asarray(stat, dtype=float))
+    if not 1 <= rank <= len(s):
+        raise ValueError(f"rank must be in [1, {len(s)}], got {rank}")
+    return float(s[-rank])
+
+
+def benchmark_limits(mon: Monitors, x_normal: np.ndarray) -> tuple[float, float]:
+    """T² and SPE thresholds under the benchmark protocol, from a normal testing set."""
+    sc = score(mon.model, x_normal)
+    return rank_threshold(sc.t2), rank_threshold(sc.spe)
+
+
+def alarms(
+    mon: Monitors,
+    x: np.ndarray,
+    *,
+    limits: str = "textbook",
+    bench: tuple[float, float] | None = None,
+) -> dict[str, np.ndarray]:
     """Per-sample alarms for each chart on ``x`` (new observations).
 
-    ``limits`` is ``"textbook"`` (F for T², Jackson-Mudholkar for SPE) or
-    ``"cv"`` (cross-validated empirical quantiles). The univariate chart is
-    the same under both.
+    ``limits`` is ``"textbook"`` (F for T², Jackson-Mudholkar for SPE),
+    ``"cv"`` (cross-validated empirical quantiles) or ``"benchmark"`` (the
+    published protocol: thresholds from :func:`benchmark_limits`, passed as
+    ``bench``). The univariate chart is the same under all three.
     """
     sc = score(mon.model, x)
     if limits == "textbook":
         t2_lim, spe_lim = mon.model.t2_limit, mon.model.spe_limit
     elif limits == "cv":
         t2_lim, spe_lim = mon.cv_t2_limit, mon.cv_spe_limit
+    elif limits == "benchmark":
+        if bench is None:
+            raise ValueError("limits='benchmark' needs the thresholds in `bench`")
+        t2_lim, spe_lim = bench
     else:
         raise ValueError(f"unknown limits {limits!r}")
     uni = np.asarray(((x < mon.uni_lcl) | (x > mon.uni_ucl)).any(axis=1))
@@ -166,10 +191,10 @@ def _rates(a: dict[str, np.ndarray], rows: slice | np.ndarray = slice(None)) -> 
     return out
 
 
-def _benchmark_comparison(faults: list[dict[str, Any]]) -> dict[str, Any]:
+def _benchmark_comparison(faults: list[dict[str, Any]], limits: str) -> dict[str, Any]:
     out: dict[str, Any] = {}
     for i, chart in enumerate(("t2", "spe")):
-        ours = np.array([f["textbook"][chart]["detection_rate"] for f in faults])
+        ours = np.array([f[limits][chart]["detection_rate"] for f in faults])
         ref = np.array([1 - tep.BENCHMARK_PCA_MISSED[f["fault"]][i] for f in faults])
         diff = ours - ref
         out[chart] = {
@@ -276,15 +301,17 @@ def run_tep_validation(
         f"univariate k={mon.uni_k:.3f}"
     )
 
-    normal = {lim: alarms(mon, data.test[0], limits=lim) for lim in ("textbook", "cv")}
+    bench = benchmark_limits(mon, data.test[0])
+    modes = ("textbook", "cv", "benchmark")
+    normal = {lim: alarms(mon, data.test[0], limits=lim, bench=bench) for lim in modes}
     faults: list[dict[str, Any]] = []
     traces: dict[int, dict[str, np.ndarray]] = {}
-    pre_pooled: dict[str, list[np.ndarray]] = {lim: [] for lim in ("textbook", "cv")}
+    pre_pooled: dict[str, list[np.ndarray]] = {lim: [] for lim in modes}
     for k in tep.FAULTS:
         x = data.test[k]
         row: dict[str, Any] = {"fault": k, "description": tep.FAULT_DESCRIPTIONS[k]}
-        for lim in ("textbook", "cv"):
-            a = alarms(mon, x, limits=lim)
+        for lim in modes:
+            a = alarms(mon, x, limits=lim, bench=bench)
             row[lim] = {c: _fault_metrics(a[c], cfg.delay_run_length) for c in CHARTS}
             pre_pooled[lim].append(np.column_stack([a[c][: tep.FAULT_ONSET] for c in CHARTS]))
         miss_t2, miss_spe = tep.BENCHMARK_PCA_MISSED[k]
@@ -389,13 +416,25 @@ def run_tep_validation(
             "spe_limit_method": model.spe_limit_method,
             "cv_t2_limit": mon.cv_t2_limit,
             "cv_spe_limit": mon.cv_spe_limit,
+            "benchmark_t2_limit": bench[0],
+            "benchmark_spe_limit": bench[1],
+            "benchmark_threshold_rule": (
+                f"{tep.BENCHMARK_THRESHOLD_RANK}th highest value on the normal testing set"
+            ),
         },
         "false_alarms": {
             "d00_te": {lim: _rates(a) for lim, a in normal.items()},
             "pre_fault_pooled": pre,
+            "benchmark_pca": {
+                split: {"t2": t2, "spe": q}
+                for split, (t2, q) in tep.BENCHMARK_PCA_FALSE_ALARM.items()
+            },
         },
         "faults": faults,
-        "benchmark_comparison": _benchmark_comparison(faults),
+        "benchmark_source": tep.BENCHMARK_SOURCE,
+        # matched protocol (primary), and the textbook limits for reference
+        "benchmark_comparison": _benchmark_comparison(faults, "benchmark"),
+        "benchmark_comparison_textbook_limits": _benchmark_comparison(faults, "textbook"),
         "undetectable_by_pca": {
             str(k): {c: faults[k - 1]["textbook"][c]["detection_rate"] for c in ("t2", "spe")}
             for k in tep.UNDETECTABLE_BY_PCA
@@ -449,17 +488,21 @@ def write_figures(
     # fig13: detection rate per fault
     fig, ax = plt.subplots(figsize=(8.6, 3.6))
     w = 0.27
+    # PCA bars use the benchmark's own threshold rule so the comparison is like
+    # for like; the univariate scheme has no published counterpart.
     series = (
-        ("t2", "PCA T²", INK),
-        ("spe", "PCA SPE", ACCENT),
-        ("univariate", "univariate (Šidák)", SAND),
+        ("t2", "benchmark", "PCA T²", INK),
+        ("spe", "benchmark", "PCA SPE", ACCENT),
+        ("univariate", "textbook", "univariate (Šidák)", SAND),
     )
-    for i, (c, lab, col) in enumerate(series):
-        vals = [f["textbook"][c]["detection_rate"] for f in faults]
+    for i, (c, mode, lab, col) in enumerate(series):
+        vals = [f[mode][c]["detection_rate"] for f in faults]
         ax.bar(ks + (i - 1) * w, vals, width=w, color=col, label=lab)
     ref_t2 = [f["benchmark_pca"]["t2_detection_rate"] for f in faults]
     ref_spe = [f["benchmark_pca"]["spe_detection_rate"] for f in faults]
-    ax.plot(ks - w, ref_t2, "_", color=BLUE, ms=11, mew=2, label="benchmark T² (Chiang et al.)")
+    ax.plot(
+        ks - w, ref_t2, "_", color=BLUE, ms=11, mew=2, label="benchmark T² (Russell et al. 2000)"
+    )
     ax.plot(ks, ref_spe, "_", color=GOOD, ms=11, mew=2, label="benchmark SPE")
     nominal = results["settings"]["alpha"]
     ax.axhline(nominal, color=MUTED, ls="--", lw=1)
@@ -471,7 +514,7 @@ def write_figures(
     ax.set_ylim(0, 1.05)
     ax.set_xlabel("TEP fault")
     ax.set_ylabel("detection rate after onset")
-    ax.set_title("Tennessee Eastman: this repo's charts against the published PCA benchmark")
+    ax.set_title("Tennessee Eastman: PCA at the published threshold rule against the benchmark")
     ax.legend(fontsize=7, frameon=False, ncol=3, loc="upper center", bbox_to_anchor=(0.5, -0.18))
     ax.grid(axis="y", lw=0.6)
     fig.tight_layout()

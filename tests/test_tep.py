@@ -19,8 +19,10 @@ from secom.mspc import fit_pca_model, score
 from secom.tep_validation import (
     TEPValidationConfig,
     alarms,
+    benchmark_limits,
     fit_monitors,
     lag1_autocorrelation,
+    rank_threshold,
     run_tep_validation,
 )
 
@@ -147,6 +149,27 @@ def test_benchmark_table_covers_every_fault() -> None:
     assert len(tep.VARIABLES) == tep.N_VARS
 
 
+@pytest.mark.parametrize(
+    ("fault", "t2", "q"),
+    [
+        (1, 0.008, 0.003),
+        (4, 0.956, 0.038),
+        (9, 0.994, 0.981),
+        (11, 0.794, 0.356),
+        (21, 0.736, 0.570),
+    ],
+)
+def test_benchmark_matches_the_published_table(fault: int, t2: float, q: float) -> None:
+    # Russell, Chiang & Braatz (2000), Table 4. Fault 9 once carried its Q value
+    # in the T² column, so it is pinned here.
+    assert tep.BENCHMARK_PCA_MISSED[fault] == (t2, q)
+
+
+def test_benchmark_false_alarms_match_the_published_table() -> None:
+    # Russell, Chiang & Braatz (2000), Table 3, PCA rows.
+    assert tep.BENCHMARK_PCA_FALSE_ALARM == {"training": (0.002, 0.004), "testing": (0.014, 0.016)}
+
+
 # PCA limits on data that meets their assumptions
 
 
@@ -177,12 +200,26 @@ def test_monitors_flag_a_mean_shift() -> None:
     mon = fit_monitors(train, cfg)
     shifted = rng.standard_normal((300, tep.N_VARS))
     shifted[:, 0] += 8.0
-    for lim in ("textbook", "cv"):
-        a = alarms(mon, shifted, limits=lim)
+    bench = benchmark_limits(mon, rng.standard_normal((960, tep.N_VARS)))
+    for lim in ("textbook", "cv", "benchmark"):
+        a = alarms(mon, shifted, limits=lim, bench=bench)
         assert a["univariate"].mean() > 0.95
         assert (a["t2"] | a["spe"]).mean() > 0.95
     with pytest.raises(ValueError):
         alarms(mon, shifted, limits="nonsense")
+    with pytest.raises(ValueError, match="bench"):
+        alarms(mon, shifted, limits="benchmark")
+
+
+def test_rank_threshold_is_the_published_rule() -> None:
+    # "adjusted to the tenth highest value": 9 of 960 normal samples exceed it,
+    # an empirical alpha just under 0.01
+    x = np.random.default_rng(3).permutation(np.arange(960.0))
+    thr = rank_threshold(x)
+    assert thr == 950.0
+    assert (x > thr).sum() == 9
+    with pytest.raises(ValueError):
+        rank_threshold(x, rank=0)
 
 
 def test_cli_reports_missing_tep_data(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -232,11 +269,18 @@ class TestRealTEP:
         ins = tep_results["calibration"]["tep"]["in_sample"]
         assert ins["t2"] <= 0.02 and ins["spe"] <= 0.02
 
-    def test_detection_tracks_the_published_benchmark(self, tep_results: dict) -> None:
+    def test_detection_reproduces_the_published_table(self, tep_results: dict) -> None:
+        # Same threshold rule as Russell et al. (2000), so every fault should
+        # land close to Table 4, not just correlate with it.
         cmp_ = tep_results["benchmark_comparison"]
-        assert cmp_["t2"]["mean_abs_diff"] < 0.06
-        assert cmp_["t2"]["pearson_r"] > 0.97
-        assert cmp_["spe"]["pearson_r"] > 0.95
+        for chart in ("t2", "spe"):
+            assert cmp_[chart]["mean_abs_diff"] < 0.02
+            assert cmp_[chart]["max_abs_diff"] < 0.05
+            assert cmp_[chart]["n_within_0_05"] == len(tep.FAULTS)
+
+    def test_benchmark_rule_sets_an_empirical_one_percent(self, tep_results: dict) -> None:
+        far = tep_results["false_alarms"]["d00_te"]["benchmark"]
+        assert far["t2"] == far["spe"] == pytest.approx(9 / tep.N_TEST)
 
     def test_moving_range_sigma_breaks_on_autocorrelated_variables(self, tep_results: dict) -> None:
         uni = tep_results["calibration"]["tep_univariate"]

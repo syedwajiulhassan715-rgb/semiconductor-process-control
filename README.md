@@ -7,8 +7,9 @@
 <p>
 <a href="https://github.com/syedwajiulhassan715-rgb/semiconductor-process-control/actions/workflows/ci.yml"><img src="https://github.com/syedwajiulhassan715-rgb/semiconductor-process-control/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 <a href="https://github.com/syedwajiulhassan715-rgb/semiconductor-process-control/actions/workflows/docs.yml"><img src="https://github.com/syedwajiulhassan715-rgb/semiconductor-process-control/actions/workflows/docs.yml/badge.svg" alt="Docs"></a>
+<a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2E7D4F" alt="MIT license"></a>
 <img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-3776AB?logo=python&logoColor=white" alt="Python 3.11 | 3.12 | 3.13">
-<img src="https://img.shields.io/badge/tests-254-2E7D4F" alt="254 tests">
+<img src="https://img.shields.io/badge/tests-262-2E7D4F" alt="262 tests">
 <a href="https://docs.astral.sh/ruff/"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Ruff"></a>
 <img src="https://img.shields.io/badge/types-mypy-2E7D4F" alt="mypy">
 <img src="https://img.shields.io/badge/docker-ready-2496ED?logo=docker&logoColor=white" alt="Docker">
@@ -203,10 +204,16 @@ the forward number is not one unlucky cut: mean AUC 0.641 (sd 0.106).
 
 SECOM has no fault labels, so nothing above can show the code detects a fault
 it should. The Tennessee Eastman benchmark has 21 faults injected at known
-times. Run unchanged on it, this repo's PCA code reproduces the published
-T² detection rates to a mean gap of **0.027** (correlation 0.999), catches
-fault 1, sees fault 4 only in SPE, and leaves the known-undetectable faults 3,
-9 and 15 at the false-alarm rate.
+times. Run unchanged on it, with the threshold rule the original paper used,
+this repo's PCA code reproduces the published detection rates for all 21
+faults to a mean gap of **0.003** (T²) and **0.005** (SPE), checked against
+Table 4 of Russell, Chiang & Braatz (2000). It catches fault 1, sees fault 4
+only in SPE, and leaves the known-undetectable faults 3, 9 and 15 at the
+false-alarm rate.
+
+<p align="center">
+  <img src="reports/figures/fig13_tep_detection.png" width="100%" alt="Detection rate per Tennessee Eastman fault for PCA T-squared, SPE and the univariate scheme, against the published benchmark">
+</p>
 
 <p align="center">
   <img src="reports/figures/fig14_tep_calibration.png" width="85%" alt="False-alarm rate of the textbook limits on Tennessee Eastman and SECOM against the nominal alpha">
@@ -214,8 +221,7 @@ fault 1, sees fault 4 only in SPE, and leaves the known-undetectable faults 3,
 <p align="center">
   <sub><b>The same code, two datasets.</b> In-sample, the textbook T² limit alarms on 0.6% of
   Tennessee Eastman runs against a nominal 1%, and on 12.0% of SECOM runs. The calibration
-  failure in §3 is a property of SECOM's heavy-tailed data, not a bug. Benchmark values are
-  transcribed from secondary sources (D38).</sub>
+  failure in §3 is a property of SECOM's heavy-tailed data, not a bug (D38).</sub>
 </p>
 
 ## 6 · The scheme, operating
@@ -247,7 +253,7 @@ Linux the numbers agree to floating-point rounding (at most 6×10⁻¹⁶). The
 committed outputs come from the Docker image.
 
 **The choices that could quietly invalidate the result are pinned by tests** —
-254 of them:
+262 of them:
 
 | Risk | Guard |
 |---|---|
@@ -258,7 +264,8 @@ committed outputs come from the Docker image.
 | The live monitor drifting from the analysis | `test_reproduces_batch_cusum_exactly` |
 | Simulated detection power being wrong | `test_simulation_matches_exact_binomial` checks every Shewhart case against exact values |
 | A change-point method that cannot find a change | `test_recovers_a_known_split_and_covers_it` |
-| A PCA implementation error passing unnoticed | `test_fault_1_t2_detection_matches_the_benchmark`, `test_known_undetectable_faults_stay_near_the_false_alarm_rate` |
+| A PCA implementation error passing unnoticed | `test_detection_reproduces_the_published_table` holds all 21 Tennessee Eastman faults to the original paper's Table 4 |
+| A wrong benchmark value | `test_benchmark_matches_the_published_table` pins rows of the original tables, including the corrected fault 9 |
 | FDR implementation drift | validated against `statsmodels` to 2×10⁻¹⁶ |
 | A silent change in dataset shape | `io.load_raw` hard-errors unless the matrix is 1567×590 |
 
@@ -319,13 +326,13 @@ pip install -e ".[dev]"     # pytest, pytest-cov, ruff, mypy, pre-commit
 pre-commit install          # ruff + hygiene hooks on every commit
 ruff check . && ruff format --check .
 mypy                        # type-checks src/secom
-pytest -q --cov=secom       # 254 tests
+pytest -q --cov=secom       # 262 tests
 
 pip install -e ".[docs]"    # MkDocs Material + mkdocstrings
 mkdocs serve                # docs site at http://127.0.0.1:8000
 ```
 
-Without the raw data, 25 real-data tests skip and the remaining 229 still run.
+Without the raw data, 26 real-data tests skip and the remaining 236 still run.
 CI runs lint, mypy, the full suite with coverage on Python 3.11–3.13, a
 `secom run` and `secom validate tep` smoke test, and a Docker build. The docs
 workflow builds the site with `--strict` and deploys it to GitHub Pages from
@@ -371,7 +378,7 @@ docs/            documentation site pages; docs/_gen builds the config,
                  architecture and API pages and includes the report
 mkdocs.yml       documentation site configuration
 Dockerfile, docker/   image for the pipeline and monitor; pinned versions
-tests/           254 tests
+tests/           262 tests
 reports/
   ENGINEERING_REPORT.md   the write-up
   results.json            every quoted number
@@ -438,4 +445,13 @@ Repository. https://doi.org/10.24432/C54305
 
 Tennessee Eastman Process data: Braatz group files, as mirrored at
 [camaramm/tennessee-eastman-profBraatz](https://github.com/camaramm/tennessee-eastman-profBraatz);
-fetched on demand and never committed.
+fetched on demand and never committed. The PCA benchmark is Russell, E. L.,
+Chiang, L. H. & Braatz, R. D. (2000). Fault detection in industrial processes
+using canonical variate analysis and dynamic principal component analysis.
+*Chemometrics and Intelligent Laboratory Systems*, 51, 81–93,
+https://doi.org/10.1016/S0169-7439(00)00058-7
+
+## License
+
+The code is released under the [MIT License](LICENSE). The datasets are not
+redistributed here and remain under their own terms.

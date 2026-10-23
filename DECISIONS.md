@@ -633,25 +633,38 @@ the claim is limited to implementation correctness and the cause of the
 calibration failure (report §9, "What this validation does not establish"),
 not SECOM detection power.
 
-### D38. Benchmark settings: A = 11, α = 0.01, textbook limits primary
+### D38. Benchmark settings: A = 11, α = 0.01, the paper's own threshold rule
 
-A = 11 retained components and α = 0.01 per chart are the settings commonly
-attributed to the Chiang, Russell & Braatz (2001) PCA benchmark on these
-files. The textbook F and Jackson–Mudholkar limits are primary because they
-are what that benchmark uses. The benchmark detection rates are a
-transcription from secondary reproductions, not checked against the book, so
-the tests assert only qualitative facts (easy faults caught, faults 3/9/15
-not, fault 4 an SPE fault). They do not assert the table.
+The benchmark is Russell, Chiang & Braatz (2000), *Chemometrics and
+Intelligent Laboratory Systems* 51, 81–93, read from the authors' copy. Its
+PCA model uses A = 11 for normal operation (Table 2) and α = 0.01. The
+missed-detection rates in its Table 4 were not computed with the textbook
+limits: each threshold was "adjusted to the tenth highest value for the normal
+operating condition of the testing set", an empirical α of about 0.01. The
+comparison therefore uses that rule (`secom.tep_validation.rank_threshold`).
+Every value of the PCA columns was checked against Table 4. That check
+corrected fault 9's T² entry from 0.981 to 0.994, a value that circulating
+secondary copies get wrong.
 
-The cross-validated limits from the SECOM multivariate stage are reported
-alongside but are not primary here. On TEP they improve SPE (7.1% → 2.2%
-false alarms on `d00_te`) but worsen T² (1.7% → 4.7%), so neither scheme
-dominates.
+Under that rule the implementation reproduces Table 4 to a mean gap of 0.003
+(T²) and 0.005 (SPE), with every fault within 0.025. The tests assert this
+against the published values and pin rows of Tables 3 and 4.
 
-**If wrong:** if the benchmark used another A, the detection comparison
-shifts. The sensitivity table (A = 5 to 24) shows mean detection over the
-detectable faults moving only 0.61–0.65 (T²) and 0.76–0.84 (SPE), and the
-qualitative facts hold throughout.
+The textbook F and Jackson–Mudholkar limits remain the subject of the
+calibration comparison with SECOM, which asks whether formula-based limits
+hold. The cross-validated limits from the SECOM multivariate stage are
+reported alongside. On TEP they improve SPE (7.1% → 2.2% false alarms on
+`d00_te`) but worsen T² (1.7% → 4.7%), so neither scheme dominates.
+
+An earlier version of this comparison used the textbook limits against Table
+4. That produced a one-way SPE gap of +0.074, which disappears under the
+paper's rule: it was a protocol mismatch, not a model difference.
+
+**If wrong:** A = 11 is taken from the paper's Table 2 and the threshold rule
+from its text, so a misreading would show up as a gap against Table 4; there
+is none above 0.025. If a reader prefers the textbook limits, the comparison
+is still reported under them (`benchmark_comparison_textbook_limits`), and
+the qualitative facts hold under both.
 
 ### D39. TEP univariate charts use the overall SD, not the moving range
 

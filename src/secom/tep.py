@@ -56,11 +56,17 @@ FAULT_DESCRIPTIONS = {
     21: "Valve for stream 4 fixed at its steady-state position",
 }
 
-#: PCA missed-detection rates (T², Q) with alpha = 0.01, as widely reproduced
-#: from Chiang, Russell & Braatz (2001), *Fault Detection and Diagnosis in
-#: Industrial Systems*, Springer, on these same files. Transcribed from
-#: secondary reproductions, not checked against the book itself; use them as
-#: a qualitative reference, not as exact targets.
+#: Source of the published benchmark, checked against the original paper.
+BENCHMARK_SOURCE = (
+    "Russell, Chiang & Braatz (2000), Fault detection in industrial processes using "
+    "canonical variate analysis and dynamic principal component analysis, Chemometrics "
+    "and Intelligent Laboratory Systems 51, 81-93: Table 4 (missed detection) and "
+    "Table 3 (false alarms); PCA with a = 11, alpha = 0.01"
+)
+
+#: PCA missed-detection rates (T², Q) per fault on the testing sets, alpha = 0.01,
+#: from Table 4 of :data:`BENCHMARK_SOURCE` (the same values appear in Chiang,
+#: Russell & Braatz 2001, *Fault Detection and Diagnosis in Industrial Systems*).
 BENCHMARK_PCA_MISSED = {
     1: (0.008, 0.003),
     2: (0.020, 0.014),
@@ -70,7 +76,7 @@ BENCHMARK_PCA_MISSED = {
     6: (0.011, 0.000),
     7: (0.085, 0.000),
     8: (0.034, 0.024),
-    9: (0.981, 0.981),
+    9: (0.994, 0.981),
     10: (0.666, 0.659),
     11: (0.794, 0.356),
     12: (0.029, 0.025),
@@ -83,6 +89,18 @@ BENCHMARK_PCA_MISSED = {
     19: (0.996, 0.873),
     20: (0.701, 0.550),
     21: (0.736, 0.570),
+}
+
+#: Table 4 was computed with each threshold "adjusted to the tenth highest value
+#: for the normal operating condition of the testing set" (p. 89), an empirical
+#: alpha of about 0.01, not with the textbook limits.
+BENCHMARK_THRESHOLD_RANK = 10
+
+#: PCA false-alarm rates (T², Q) at alpha = 0.01, Table 3 of :data:`BENCHMARK_SOURCE`:
+#: on the normal training data and on the normal testing set (d00_te).
+BENCHMARK_PCA_FALSE_ALARM = {
+    "training": (0.002, 0.004),
+    "testing": (0.014, 0.016),
 }
 
 #: Faults that PCA is known not to detect (Chiang et al. 2001; Russell et al. 2000).
