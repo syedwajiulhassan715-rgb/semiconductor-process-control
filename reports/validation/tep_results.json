@@ -1992,6 +1992,19 @@
         "univariate": 0.03958333333333333,
         "either_pca": 0.0875
       },
+      "spe_limit_diagnostics_d00_te": {
+        "theta1": 23.839592350803198,
+        "h0": 0.26282075766978175,
+        "jackson_mudholkar_limit": 41.687624608494936,
+        "box_limit": 41.33184612458717,
+        "mean_spe_in_sample": 23.7919131661016,
+        "mean_spe_out_of_fold": 28.00336442893933,
+        "mean_spe_new": 29.644966390695604,
+        "new_mean_over_theta1": 1.2435181757500486,
+        "new_far_spe_box": 0.07395833333333333,
+        "new_far_spe_rescaled": 0.007291666666666667,
+        "new_sd_over_train_sd_median": 1.0619572398440362
+      },
       "n_train": 500,
       "median_excess_kurtosis": -0.10662044652844749
     },

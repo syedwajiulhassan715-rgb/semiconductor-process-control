@@ -105,6 +105,45 @@ class TestLimits:
         jm = spe_limit_jackson_mudholkar(resid, alpha)
         assert spe_limit_box(resid, alpha) == pytest.approx(jm, rel=0.05)
 
+    @pytest.mark.parametrize("alpha", [0.05, 0.01, 0.0027])
+    def test_spe_limits_match_the_exact_distribution(self, alpha: float) -> None:
+        # With the true subspace and eigenvalues, SPE = sum(lam_j * chi2_1)
+        # exactly, so the formula is checked with no estimation error at all.
+        lam = np.linspace(1.5, 0.05, 41)  # a residual spectrum like TEP's at A = 11
+        rng = np.random.default_rng(5)
+        spe = (rng.standard_normal((200_000, lam.size)) ** 2) @ lam
+        exact = np.quantile(spe, 1 - alpha)
+        assert spe_limit_jackson_mudholkar(lam, alpha) == pytest.approx(exact, rel=0.01)
+        assert spe_limit_box(lam, alpha) == pytest.approx(exact, rel=0.02)
+
+    def test_jackson_mudholkar_is_undefined_for_negative_h0(self) -> None:
+        # One dominant residual eigenvalue over a long tail gives h0 < 0. The
+        # closed form then returned a lower-tail value (about 4.4 here, under
+        # the mean of 20) that nearly every point exceeded; it must refuse.
+        lam = np.r_[10.0, np.full(1000, 0.01)]
+        t1, t2, t3 = (np.sum(lam**k) for k in (1, 2, 3))
+        assert 1 - 2 * t1 * t3 / (3 * t2**2) < 0
+        assert np.isnan(spe_limit_jackson_mudholkar(lam, 0.01))
+        assert spe_limit_box(lam, 0.01) > lam.sum()
+
+    def test_fit_falls_back_to_box_when_h0_is_negative(self) -> None:
+        # Two factors, the second left in the residual as one strong direction
+        # (eigenvalue ~25) over ~200 weak noise directions (~0.5 each).
+        rng = np.random.default_rng(6)
+        p = 200
+        load = np.zeros((p, 2))
+        load[:150, 0] = 1.0
+        load[150:, 1] = 1.0
+
+        def draw(n: int) -> np.ndarray:
+            return rng.standard_normal((n, 2)) @ load.T + rng.standard_normal((n, p))
+
+        m = fit_pca_model(draw(3000), _sensors(p), n_components=1, alpha=0.01)
+        assert m.spe_limit_method == "box"
+        assert m.spe_limit == pytest.approx(spe_limit_box(m.eigenvalues[1:], 0.01))
+        far = (score(m, draw(20_000)).spe > m.spe_limit).mean()
+        assert 0.003 < far < 0.03
+
     def test_box_limit_for_equal_eigenvalues_is_chi_square(self) -> None:
         # equal residual eigenvalues lam: SPE = lam * chi2(k) exactly
         lam = np.full(5, 2.0)

@@ -15,7 +15,7 @@ from scipy import stats as sps
 
 from secom import tep
 from secom.cli import main
-from secom.mspc import fit_pca_model, score
+from secom.mspc import cross_validated_scores, fit_pca_model, score
 from secom.tep_validation import (
     TEPValidationConfig,
     alarms,
@@ -24,6 +24,7 @@ from secom.tep_validation import (
     lag1_autocorrelation,
     rank_threshold,
     run_tep_validation,
+    spe_limit_diagnostics,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -193,6 +194,27 @@ def test_textbook_limits_hold_on_gaussian_factor_data() -> None:
     assert (sc.spe > model.spe_limit).mean() == pytest.approx(0.01, abs=0.004)
 
 
+def test_spe_diagnostics_on_data_from_the_training_distribution() -> None:
+    # Same distribution, large training set: no level shift, so the new-run
+    # SPE mean is close to theta1 and the rescaled rate is close to alpha.
+    rng = np.random.default_rng(12)
+    p, a = 30, 4
+    w = rng.standard_normal((p, a)) * 2
+
+    def draw(m: int) -> np.ndarray:
+        return rng.standard_normal((m, a)) @ w.T + rng.standard_normal((m, p))
+
+    train = draw(3000)
+    names = [f"v{i}" for i in range(p)]
+    model = fit_pca_model(train, names, n_components=a, alpha=0.01)
+    _, oof_spe = cross_validated_scores(train, names, n_components=a, n_folds=5)
+    d = spe_limit_diagnostics(model, train, oof_spe, draw(20_000))
+    assert d["mean_spe_in_sample"] == pytest.approx(d["theta1"], rel=0.01)
+    assert d["new_mean_over_theta1"] == pytest.approx(1.0, abs=0.03)
+    assert d["new_far_spe_rescaled"] == pytest.approx(0.01, abs=0.004)
+    assert d["new_sd_over_train_sd_median"] == pytest.approx(1.0, abs=0.03)
+
+
 def test_monitors_flag_a_mean_shift() -> None:
     rng = np.random.default_rng(2)
     train = rng.standard_normal((500, tep.N_VARS))
@@ -268,6 +290,21 @@ class TestRealTEP:
     def test_textbook_limits_hold_in_sample(self, tep_results: dict) -> None:
         ins = tep_results["calibration"]["tep"]["in_sample"]
         assert ins["t2"] <= 0.02 and ins["spe"] <= 0.02
+
+    def test_spe_excess_on_new_data_is_a_level_shift_not_the_formula(
+        self, tep_results: dict
+    ) -> None:
+        # In-sample SPE has the mean the limit assumes and Box agrees with
+        # Jackson-Mudholkar, so the formula is right. The new run's SPE sits
+        # ~24% higher; removing that level shift restores about alpha.
+        d = tep_results["calibration"]["tep"]["spe_limit_diagnostics_d00_te"]
+        assert d["h0"] > 0
+        assert d["mean_spe_in_sample"] == pytest.approx(d["theta1"], rel=0.01)
+        assert d["box_limit"] == pytest.approx(d["jackson_mudholkar_limit"], rel=0.02)
+        assert d["new_far_spe_box"] >= tep_results["false_alarms"]["d00_te"]["textbook"]["spe"]
+        assert d["mean_spe_out_of_fold"] > 1.1 * d["theta1"]
+        assert d["new_mean_over_theta1"] > 1.15
+        assert d["new_far_spe_rescaled"] < 0.02
 
     def test_detection_reproduces_the_published_table(self, tep_results: dict) -> None:
         # Same threshold rule as Russell et al. (2000), so every fault should

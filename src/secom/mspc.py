@@ -76,18 +76,38 @@ def t2_limit_phase1(a: int, n: int, alpha: float) -> float:
 
 
 def spe_limit_jackson_mudholkar(residual_eigenvalues: np.ndarray, alpha: float) -> float:
-    """Jackson-Mudholkar (1979) upper limit for SPE from the discarded eigenvalues."""
+    """Jackson-Mudholkar (1979) upper limit for SPE from the discarded eigenvalues.
+
+    ``theta_i = sum(lam_j ** i)`` over the residual eigenvalues (those of the
+    autoscaled baseline's covariance, i.e. its correlation matrix, after the
+    A retained ones) and ``h0 = 1 - 2 theta1 theta3 / (3 theta2**2)``. The
+    approximation treats ``(SPE / theta1) ** h0`` as normal, so it needs
+    ``h0 > 0``: for ``h0 <= 0`` that power is decreasing (or constant) in SPE
+    and the usual closed form, with its ``sqrt(2 theta2 h0**2)`` term, returns
+    a *lower*-tail value that nearly every point exceeds. That happens when
+    one residual eigenvalue dominates a long tail of small ones. NaN is
+    returned then, and :func:`fit_pca_model` falls back to
+    :func:`spe_limit_box`.
+    """
     lam = np.asarray(residual_eigenvalues, dtype=float)
     lam = lam[lam > 0]
     t1, t2, t3 = (float(np.sum(lam**k)) for k in (1, 2, 3))
     h0 = 1 - 2 * t1 * t3 / (3 * t2**2)
+    if not h0 > 0:
+        return float("nan")
     c = sps.norm.ppf(1 - alpha)
     inner = c * np.sqrt(2 * t2 * h0**2) / t1 + 1 + t2 * h0 * (h0 - 1) / t1**2
+    if not inner > 0:
+        return float("nan")
     return float(t1 * inner ** (1 / h0))
 
 
 def spe_limit_box(residual_eigenvalues: np.ndarray, alpha: float) -> float:
-    """Box (1954) scaled chi-square limit g * chi2(h), g = t2/t1, h = t1²/t2."""
+    """Box (1954) scaled chi-square limit g * chi2(h), g = t2/t1, h = t1²/t2.
+
+    Matches the mean and variance of SPE; valid for any residual spectrum,
+    so it is the fallback when Jackson-Mudholkar is undefined.
+    """
     lam = np.asarray(residual_eigenvalues, dtype=float)
     t1, t2 = float(lam.sum()), float(np.sum(lam**2))
     g, h = t2 / t1, t1**2 / t2

@@ -42,6 +42,7 @@ from .mspc import (
     fit_pca_model,
     n_components_for_variance,
     score,
+    spe_limit_box,
 )
 from .spc import individuals_limits, moving_range_sigma
 
@@ -273,6 +274,43 @@ def secom_calibration(root: Path, cfg: TEPValidationConfig) -> dict[str, Any]:
     return out
 
 
+def spe_limit_diagnostics(
+    model: PCAModel, x_train: np.ndarray, oof_spe: np.ndarray, x_new: np.ndarray
+) -> dict[str, Any]:
+    """Why the formula SPE limit false-alarms on new normal data.
+
+    Both formula limits assume new SPE follows the same weighted chi-square
+    as the training residuals, with mean ``theta1`` (the residual eigenvalue
+    sum). In-sample SPE has exactly that mean; out-of-fold and new-run SPE
+    are compared against it. The Box limit is an independent approximation
+    of the same quantile, so a formula slip would show up as a gap between
+    the two. ``new_far_spe_rescaled`` scores the new run after dividing its
+    SPE by its mean ratio to ``theta1``: if that restores roughly ``alpha``,
+    the excess is a shift in SPE level, not the shape of the limit.
+    """
+    lam = model.eigenvalues[model.n_components :]
+    lam = lam[lam > 0]
+    t1, t2, t3 = (float(np.sum(lam**k)) for k in (1, 2, 3))
+    box = spe_limit_box(lam, model.alpha)
+    spe_in = score(model, x_train).spe
+    spe_new = score(model, x_new).spe
+    ratio = float(spe_new.mean() / t1)
+    sd_ratio = np.asarray(x_new, dtype=float).std(axis=0, ddof=1) / model.scale
+    return {
+        "theta1": t1,
+        "h0": 1 - 2 * t1 * t3 / (3 * t2**2),
+        "jackson_mudholkar_limit": model.spe_limit,
+        "box_limit": box,
+        "mean_spe_in_sample": float(spe_in.mean()),
+        "mean_spe_out_of_fold": float(np.mean(oof_spe)),
+        "mean_spe_new": float(spe_new.mean()),
+        "new_mean_over_theta1": ratio,
+        "new_far_spe_box": float((spe_new > box).mean()),
+        "new_far_spe_rescaled": float((spe_new / ratio > model.spe_limit).mean()),
+        "new_sd_over_train_sd_median": float(np.median(sd_ratio)),
+    }
+
+
 def _excess_kurtosis(z: np.ndarray) -> np.ndarray:
     return np.asarray(sps.kurtosis(z, axis=0))
 
@@ -373,6 +411,9 @@ def run_tep_validation(
 
     tep_cal = _calibration(model, data.train, (mon.oof_t2, mon.oof_spe))
     tep_cal["test_normal_d00_te"] = _rates(normal["textbook"])
+    tep_cal["spe_limit_diagnostics_d00_te"] = spe_limit_diagnostics(
+        model, data.train, mon.oof_spe, data.test[0]
+    )
     tep_cal["n_train"] = int(data.train.shape[0])
     tep_cal["median_excess_kurtosis"] = float(
         np.median(_excess_kurtosis((data.train - model.mean) / model.scale))
