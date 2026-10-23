@@ -195,6 +195,11 @@
   .legend .sw-pre { background: var(--band-pre); border-color: var(--accent); }
   .legend .sw-base { background: var(--band-base); border-color: var(--good); }
   .legend .sw-post { background: var(--band-post); border-color: var(--blue); }
+  .legend .sw-up { background: var(--ink); border-color: var(--ink); height: 2px; border-radius: 0; vertical-align: 3px; }
+  .legend .sw-low { background: var(--good); border-color: var(--good); height: 2px; border-radius: 0; vertical-align: 3px; }
+  .brand a { color: inherit; }
+  .mode { display: none; margin-left: 6px; font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px; background: var(--good-soft); color: var(--good); vertical-align: 1px; }
+  .static .mode { display: inline-block; }
   .err { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; display: none; }
 </style>
 </head>
@@ -202,8 +207,8 @@
 <header>
   <div class="bar">
     <div class="brand">
-      <h1>SECOM line · replay monitor</h1>
-      <p>Bernoulli CUSUM against the Phase I baseline, g-chart alongside, S060 on watch</p>
+      <h1>SECOM line · replay monitor<span class="mode" title="No server: the replay engine runs in this page">runs in your browser</span></h1>
+      <p id="tagline">Upper and lower Bernoulli CUSUM against the Phase I baseline, g-chart for context, S060 on watch</p>
     </div>
     <div class="controls">
       <button id="play" class="primary" type="button" aria-label="Play">Play</button>
@@ -233,15 +238,17 @@
     <section class="now" aria-label="Current state">
       <div class="tile"><div class="k">Run</div><div class="v num" id="t-run">0</div><div class="d num" id="t-ts">not started</div></div>
       <div class="tile"><div class="k">Week · phase</div><div class="v num" id="t-week">–</div><div class="d" id="t-phase">–</div></div>
-      <div class="tile" id="tile-cusum"><div class="k">CUSUM / h</div><div class="v num" id="t-cusum">0.00</div><div class="d num" id="t-h">–</div></div>
+      <div class="tile" id="tile-cusum"><div class="k">CUSUM upper · lower</div><div class="v num" id="t-cusum">0.00 · 0.00</div><div class="d num" id="t-h">–</div></div>
       <div class="tile"><div class="k">Fail rate, last 50</div><div class="v num" id="t-recent">–</div><div class="d num" id="t-rate">–</div></div>
     </section>
 
     <section class="card">
-      <h2>Bernoulli CUSUM <small id="cusum-design"></small></h2>
-      <p class="sub">Accumulates log-likelihood per run; signals above h and resets (D13). An alarm stays open until acknowledged.</p>
-      <div class="chart"><canvas id="c-cusum" aria-label="CUSUM chart" role="img"></canvas></div>
+      <h2>Bernoulli CUSUM, upper and lower <small id="cusum-design"></small></h2>
+      <p class="sub">Upper chart (above zero) detects degradation; lower chart (drawn below zero) detects improvement. Each accumulates log-likelihood per run, signals beyond its h and resets (D13). An alarm stays open until acknowledged.</p>
+      <div class="chart"><canvas id="c-cusum" aria-label="Upper and lower CUSUM chart" role="img"></canvas></div>
       <div class="legend">
+        <span><i class="sw-up"></i>upper: fail rate up</span>
+        <span><i class="sw-low"></i>lower: fail rate down</span>
         <span><i class="sw-pre"></i>pre-baseline W29–34</span>
         <span><i class="sw-base"></i>Phase I baseline W35–39</span>
         <span><i class="sw-post"></i>Phase II W40–42</span>
@@ -251,7 +258,7 @@
     <div class="pair">
       <section class="card">
         <h2>g-chart <small>passing runs since last failure</small></h2>
-        <p class="sub" id="g-sub">Improvement detector at the Phase I rate.</p>
+        <p class="sub" id="g-sub">Context at the Phase I rate; the lower CUSUM is the improvement alarm.</p>
         <div class="chart sm"><canvas id="c-gchart" aria-label="g-chart" role="img"></canvas></div>
         <p class="note" id="g-note"></p>
       </section>
@@ -284,6 +291,8 @@
 <div class="err" id="err" role="alert"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="engine.js"></script>
+<!-- secom:static-data -->
 <script>
 (() => {
   "use strict";
@@ -302,7 +311,15 @@
   const charts = {};
 
   // ---- API ---------------------------------------------------------------
+  // Two backends behind one call. Served by `secom monitor`, requests go to the
+  // Python JSON API. Exported by `secom monitor --export`, the page names its
+  // data file in window.SECOM_MONITOR_DATA and engine.js answers the same
+  // requests in-process, so everything below is shared.
+  const STATIC_DATA = window.SECOM_MONITOR_DATA || null;
+  let local = null;
+
   async function api(path, body) {
+    if (STATIC_DATA) return local.request(path, body);
     const opts = body === undefined ? {} : {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
     };
@@ -374,15 +391,26 @@
     const ink = css("--ink"), accent = css("--accent"), good = css("--good"), muted = css("--muted");
     const g = design.gchart;
 
-    const cOpts = baseOptions("CUSUM");
-    cOpts.scales.y.min = 0;
+    // Two-sided display: the upper statistic above zero, the lower one
+    // mirrored below it, each against its own decision interval.
+    const cOpts = baseOptions("CUSUM (lower drawn negative)");
+    cOpts.scales.y.suggestedMin = -Math.ceil((design.lower_h + 0.3) * 2) / 2;
     cOpts.scales.y.suggestedMax = Math.ceil((design.h + 0.6) * 2) / 2;
+    cOpts.scales.y.ticks.callback = (v) => Math.abs(v).toFixed(1);
+    cOpts.plugins.tooltip.callbacks.label = (item) => {
+      const name = item.dataset.label;
+      return `${name}: ${Math.abs(item.parsed.y).toFixed(3)}`;
+    };
     charts.cusum = new Chart($("c-cusum"), {
       type: "line",
       data: { datasets: [
-        { label: "CUSUM", data: [], borderColor: ink, borderWidth: 1.1, pointRadius: 0, stepped: false },
-        { label: "signal", data: [], showLine: false, pointStyle: "triangle", rotation: 180, pointRadius: 5, pointBackgroundColor: accent, pointBorderColor: accent },
-        { label: "h", ...hline(design.h, accent) },
+        { label: "upper CUSUM", data: [], borderColor: ink, borderWidth: 1.1, pointRadius: 0 },
+        { label: "upper signal", data: [], showLine: false, pointStyle: "triangle", rotation: 180, pointRadius: 5, pointBackgroundColor: accent, pointBorderColor: accent },
+        { label: "lower CUSUM", data: [], borderColor: good, borderWidth: 1.1, pointRadius: 0 },
+        { label: "lower signal", data: [], showLine: false, pointStyle: "triangle", pointRadius: 5, pointBackgroundColor: good, pointBorderColor: good },
+        { label: "upper h", ...hline(design.h, accent) },
+        { label: "lower h", ...hline(-design.lower_h, good) },
+        { label: "zero", ...hline(0, muted, [1, 0]), borderWidth: 0.6 },
       ] },
       options: cOpts,
       plugins: [phaseBands],
@@ -396,6 +424,7 @@
       data: { datasets: [
         { label: "open gap", data: [], borderColor: muted, borderWidth: 1, pointRadius: 0 },
         { label: "closed gap", data: [], showLine: false, pointRadius: 2.5, pointBackgroundColor: ink, pointBorderColor: ink },
+        { label: "above UCL", data: [], showLine: false, pointStyle: "triangle", pointRadius: 5, pointBackgroundColor: good, pointBorderColor: good },
         { label: "UCL", ...hline(g.ucl, good) },
         { label: "centre", ...hline(g.center, muted, [2, 3]) },
       ] },
@@ -427,12 +456,15 @@
 
   function appendPoints(points, rebuild) {
     const c = charts.cusum.data.datasets, g = charts.gchart.data.datasets, w = charts.watch.data.datasets;
-    if (rebuild) for (const ds of [c[0], c[1], g[0], g[1], w[0], w[1]]) ds.data = [];
+    if (rebuild) for (const ds of [c[0], c[1], c[2], c[3], g[0], g[1], g[2], w[0], w[1]]) ds.data = [];
     for (const p of points) {
       c[0].data.push({ x: p.run, y: p.cusum });
       if (p.cusum_signal) c[1].data.push({ x: p.run, y: p.cusum });
+      c[2].data.push({ x: p.run, y: -p.cusum_lower });
+      if (p.cusum_lower_signal) c[3].data.push({ x: p.run, y: -p.cusum_lower });
       g[0].data.push({ x: p.run, y: p.gap });
       if (p.closed_gap != null) g[1].data.push({ x: p.run, y: p.closed_gap });
+      if (p.gchart_signal) g[2].data.push({ x: p.run, y: p.gap });
       w[0].data.push({ x: p.run, y: p.watch_value });
       if (p.is_fail) w[1].data.push({ x: p.run, y: p.watch_value });
     }
@@ -446,17 +478,21 @@
 
   function renderDesign() {
     const d = design, g = d.gchart;
-    $("cusum-design").textContent = `p₀ ${fmtPct(d.p0)} → p₁ ${fmtPct(d.p1)} · h = ${d.h.toFixed(3)} · ARL₀ ≈ ${Math.round(d.arl0)} runs`;
-    $("t-h").textContent = `h = ${d.h.toFixed(2)}`;
+    $("cusum-design").textContent = `p₀ ${fmtPct(d.p0)} · up to ${fmtPct(d.p1)}, h ${d.h.toFixed(2)} · down to ${fmtPct(d.lower_p1)}, h ${d.lower_h.toFixed(2)}`;
+    $("t-h").textContent = `h ${d.h.toFixed(2)} · ${d.lower_h.toFixed(2)}`;
     $("w-title").textContent = d.watch_sensor;
-    $("g-sub").textContent = `Improvement detector at the Phase I rate: UCL ${g.ucl.toFixed(0)}, centre ${g.center.toFixed(1)}.`;
+    $("g-sub").textContent = `Context at the Phase I rate (UCL ${g.ucl.toFixed(0)}, centre ${g.center.toFixed(1)}); the lower CUSUM is the improvement alarm.`;
     $("g-note").textContent = g.lower_limit_active ? "" :
-      `Lower limit inactive: at p₀ = ${fmtPct(d.p0)} no single short gap can breach it, so this chart signals improvement only (D11).`;
+      `Lower limit inactive: at p₀ = ${fmtPct(d.p0)} no single short gap can breach it (D11). Gaps above the UCL are marked, not alarmed.`;
     $("seek-run").max = d.n_runs;
+    const arl = (x) => (x == null ? "not calibrated" : `${Math.round(x)} runs`);
     const rows = [
       ["Baseline weeks", `W${d.baseline_weeks[0]}–${d.baseline_weeks[1]}`],
-      ["p₀ (Phase I)", fmtPct(d.p0)], ["p₁ (doubling)", fmtPct(d.p1)],
-      ["Decision interval h", d.h.toFixed(3)], ["In-control ARL₀", `${Math.round(d.arl0)} runs`],
+      ["p₀ (Phase I)", fmtPct(d.p0)],
+      ["Upper p₁ (doubling)", fmtPct(d.p1)],
+      ["Upper h · ARL₀", `${d.h.toFixed(3)} · ${arl(d.arl0)}`],
+      ["Lower p₁ (halving)", fmtPct(d.lower_p1)],
+      ["Lower h · ARL₀", `${d.lower_h.toFixed(3)} · ${arl(d.lower_arl0)}`],
       ["g-chart UCL", `${g.ucl.toFixed(0)} runs`],
       [`${d.watch_sensor} limits`, `${d.watch_lcl.toFixed(2)} … ${d.watch_ucl.toFixed(2)}`],
       ["Runs in stream", d.n_runs.toLocaleString()],
@@ -471,8 +507,8 @@
     $("t-ts").textContent = p ? p.timestamp.replace("T", " ") : "not started";
     $("t-week").textContent = p ? p.year_week.replace(/^\d{4}-/, "") : "–";
     $("t-phase").innerHTML = p ? `<span class="pill ${phaseClass(p.phase)}">${esc(p.phase.replace(/^\d - /, ""))}</span>` : "–";
-    $("t-cusum").textContent = p ? p.cusum.toFixed(2) : "0.00";
-    $("tile-cusum").classList.toggle("alarm", !!(p && p.cusum_signal));
+    $("t-cusum").textContent = p ? `${p.cusum.toFixed(2)} · ${p.cusum_lower.toFixed(2)}` : "0.00 · 0.00";
+    $("tile-cusum").classList.toggle("alarm", !!(p && (p.cusum_signal || p.cusum_lower_signal)));
     $("t-recent").textContent = p ? fmtPct(p.recent_fail_rate) : "–";
     $("t-rate").textContent = p ? `cumulative ${fmtPct(p.fail_rate)} · p₀ ${fmtPct(design.p0)}` : "–";
 
@@ -502,7 +538,7 @@
   function alarmCard(a) {
     const kind = a.kind === "improvement" ? "improvement" : "";
     const closed = a.status !== "open";
-    const title = a.source === "cusum" ? "Yield degradation" : "Yield improvement";
+    const title = a.kind === "improvement" ? "Yield improvement" : "Yield degradation";
     const meta = `raised run ${a.raised_run} · ${a.raised_at.replace("T", " ")} · ${a.signals} signal${a.signals === 1 ? "" : "s"}`;
     const foot = closed
       ? `<div class="meta">acknowledged at run ${a.acknowledged_run}${a.note ? " — " + esc(a.note) : ""}</div>`
@@ -605,6 +641,13 @@
       } catch (_) {}
     }
     try {
+      if (STATIC_DATA) {
+        document.documentElement.classList.add("static");
+        $("tagline").innerHTML = 'Replaying the SECOM runs through upper and lower Bernoulli CUSUMs, a g-chart and the S060 watchlist · <a href="https://syedwajiulhassan715-rgb.github.io/semiconductor-process-control/monitor/">how it works</a>';
+        const res = await fetch(STATIC_DATA);
+        if (!res.ok) throw new Error(`${STATIC_DATA}: ${res.status} ${res.statusText}`);
+        local = SecomEngine.localApi(await res.json());
+      }
       design = await api("/api/design");
       const sel = $("speed");
       const want = String(params.get("speed") || design.default_speed);
@@ -616,7 +659,7 @@
       accept(s, true);
       if (params.get("autoplay") === "1") setPlaying(true);
     } catch (e) {
-      showError("Could not reach the monitor server: " + e.message);
+      showError((STATIC_DATA ? "Could not load the replay data: " : "Could not reach the monitor server: ") + e.message);
     }
   })();
 })();

@@ -124,6 +124,14 @@ def _cmd_monitor(args: argparse.Namespace) -> int:
     except FileNotFoundError as exc:
         print(f"secom: {exc}", file=sys.stderr)
         return 2
+    if args.export is not None:
+        from .monitor_export import export_static
+
+        written = export_static(args.export, session.design, session.runs, speed=args.speed)
+        for path in written:
+            print(f"wrote {path}")
+        print("static monitor: serve that folder with any web server and open index.html")
+        return 0
     try:
         server = serve(
             session, host=args.host, port=args.port, speed=args.speed, quiet=not args.verbose
@@ -227,6 +235,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="initial playback speed (default: %(default)s)",
     )
     p_monitor.add_argument("--open", action="store_true", help="open the page in a browser")
+    p_monitor.add_argument(
+        "--export",
+        metavar="DIR",
+        type=Path,
+        default=None,
+        help="write a static, server-free copy of the monitor into DIR instead of serving",
+    )
     p_monitor.add_argument("-v", "--verbose", action="store_true", help="log every request")
     p_monitor.set_defaults(func=_cmd_monitor)
 

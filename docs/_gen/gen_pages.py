@@ -1,9 +1,14 @@
 """Build-time page generation for the MkDocs site (run by mkdocs-gen-files).
 
-Nothing here imports ``secom``: the stage registry and config sections are read
-with ``ast``, and the API pages are rendered by mkdocstrings from source. So the
-site builds without numpy/pandas installed, and anything merged later (a new
-module, stage or config section) appears without touching ``mkdocs.yml``.
+The pages here do not import ``secom``: the stage registry and config sections
+are read with ``ast``, and the API pages are rendered by mkdocstrings from
+source, so anything merged later (a new module, stage or config section)
+appears without touching ``mkdocs.yml``.
+
+The one exception is the live demo at ``/demo/``: the replay monitor exported
+as a static, server-free page by :mod:`secom.monitor_export`, from the
+committed pipeline outputs at build time so it never goes stale. That needs
+the package's core dependencies (``pip install ".[docs]"`` installs them).
 
 Repository documents (the engineering report, the decision log, the Power BI
 guide) are copied in rather than duplicated. Their relative links are written
@@ -23,6 +28,7 @@ import ast
 import logging
 import posixpath
 import re
+import sys
 from pathlib import Path
 
 import mkdocs_gen_files
@@ -306,7 +312,24 @@ def generate_reference() -> None:
         fh.writelines(nav.build_literate_nav())
 
 
+# ---------------------------------------------------------------- live demo
+
+
+def generate_demo() -> None:
+    """Write the static replay monitor to ``demo/`` (index.html, engine, data)."""
+    if str(SRC) not in sys.path:
+        sys.path.insert(0, str(SRC))
+    from secom.monitor import load_from_outputs
+    from secom.monitor_export import static_files
+
+    design, runs = load_from_outputs(ROOT)
+    for name, body in static_files(design, runs).items():
+        with mkdocs_gen_files.open(f"demo/{name}", "wb") as fh:
+            fh.write(body)
+
+
 generate_documents()
+generate_demo()
 generate_configuration()
 generate_architecture()
 generate_reference()

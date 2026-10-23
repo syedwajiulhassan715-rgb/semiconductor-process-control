@@ -9,6 +9,13 @@ this line needs a **monitoring scheme, not a prediction model**. The project is
 built to demonstrate that rather than assert it, and every number it quotes is
 regenerated into `reports/results.json` by a deterministic pipeline.
 
+[Try the live monitor](https://syedwajiulhassan715-rgb.github.io/semiconductor-process-control/demo/){ .md-button .md-button--primary }
+[How the monitor works](monitor.md){ .md-button }
+
+The live monitor replays all 1,567 runs through the recommended scheme in your
+browser, with nothing to install: watch the CUSUM catch the opening excursion
+at run 12, then acknowledge the alarm as a line engineer would.
+
 ## The findings
 
 <div class="grid cards" markdown>
@@ -97,7 +104,7 @@ regenerated into `reports/results.json` by a deterministic pipeline.
 | Know why each choice was made, and what breaks if it is wrong | [Decision log](decisions.md) |
 | Change a threshold and rerun | [Configuration](configuration.md) |
 | Add an analysis stage | [Pipeline architecture](architecture.md) |
-| Watch the recommended scheme operate run by run | [Replay monitor](monitor.md) |
+| Watch the recommended scheme operate run by run | [Live demo](https://syedwajiulhassan715-rgb.github.io/semiconductor-process-control/demo/) or the [replay monitor guide](monitor.md) |
 | Build the dashboard | [Power BI](powerbi.md) |
 | Use the library | [API reference](reference/secom/index.md) |
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "secom-process-control"
-version = "1.0.0"
+version = "1.1.0"
 description = "Production test monitoring and process control analysis on the UCI SECOM fab dataset"
 readme = "README.md"
 license = "MIT"
@@ -72,7 +72,7 @@ Dataset = "https://doi.org/10.24432/C54305"
 where = ["src"]
 
 [tool.setuptools.package-data]
-secom = ["monitor_static/*.html"]
+secom = ["monitor_static/*.html", "monitor_static/*.js"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -85,7 +85,19 @@ branch = true
 [tool.coverage.report]
 show_missing = true
 skip_covered = true
-exclude_also = ["if __name__ == .__main__.:", "if TYPE_CHECKING:"]
+# CI fails below this. Measured 86% on the full suite with data/raw/ present
+# (as in CI); keep it a few points under the measured total.
+fail_under = 82
+exclude_also = [
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    '@(typing\.)?overload',
+    '^\s*\.\.\.$',
+]
+
+[tool.coverage.xml]
+output = "coverage.xml"
 
 [tool.mypy]
 python_version = "3.11"

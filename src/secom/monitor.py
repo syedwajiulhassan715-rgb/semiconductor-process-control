@@ -1,15 +1,20 @@
 """Run-by-run replay of the recommended monitoring scheme.
 
 The report recommends a Bernoulli CUSUM against the Phase I baseline as the
-live yield monitor, a g-chart alongside it as an improvement detector, and S060
-on a watchlist. This module runs those three online, one run at a time, the
-way a line engineer would see them:
+live yield monitor, a lower Bernoulli CUSUM as the improvement detector (at the
+same false-alarm risk it detects a halving far sooner than the g-chart), and
+S060 on a watchlist. This module runs them online, one run at a time, the way
+a line engineer would see them:
 
 - :class:`OnlineBernoulliCusum` reproduces :func:`secom.spc.bernoulli_cusum`
-  exactly, including reset-on-signal (D13).
+  exactly, including reset-on-signal (D13). With ``side="lower"`` and
+  ``p1 < p0`` it is the improvement CUSUM: the same log-likelihood-ratio
+  recursion, which now builds up from passes and is paid down by failures.
 - :class:`OnlineGChart` counts passing runs since the last failure against
-  fixed geometric limits at the Phase I rate. It signals improvement as soon
-  as the open gap crosses the UCL, without waiting for the next failure.
+  fixed geometric limits at the Phase I rate. It stays on the page as context,
+  since it is the chart engineers know, but it no longer raises alarms: the
+  lower CUSUM is the improvement alarm, and two alarms for one improvement
+  would open the same investigation twice. UCL crossings are still marked.
 - :class:`WatchlistTracker` reports S060 against its Phase I individuals
   limits. It is informational and never raises an alarm, because S060 is a
   watchlist item, not a root cause.
@@ -25,6 +30,7 @@ The design is read from committed pipeline outputs (``reports/results.json`` and
 from __future__ import annotations
 
 import json
+import math
 from collections import deque
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -57,17 +63,39 @@ class CusumState:
 
 
 class OnlineBernoulliCusum:
-    """Incremental form of :func:`secom.spc.bernoulli_cusum`.
+    """Incremental one-sided Bernoulli CUSUM.
 
-    Uses the same weights and the same floor-then-compare order, so feeding it a
-    sequence gives bit-identical values to the batch function.
+    Per run it adds the log-likelihood ratio of p1 against p0::
+
+        S_t = max(0, S_{t-1} + x_t log(p1/p0) + (1 - x_t) log((1-p1)/(1-p0)))
+
+    and signals when ``S_t > h``. ``side="upper"`` (p1 > p0) is the degradation
+    chart of :func:`secom.spc.bernoulli_cusum`, with the same weights and the
+    same floor-then-compare order, so feeding it a sequence gives bit-identical
+    values to the batch function. ``side="lower"`` (p1 < p0) is the improvement
+    chart: the pass weight is now positive and the fail weight negative, so a
+    long run of passes builds evidence that the fail rate has fallen. It is the
+    recursion of :func:`secom.power.cusum_first_signal` with ``p1 < p0``.
     """
 
-    def __init__(self, p0: float, p1: float, h: float, *, reset_on_signal: bool = True) -> None:
+    def __init__(
+        self,
+        p0: float,
+        p1: float,
+        h: float,
+        *,
+        reset_on_signal: bool = True,
+        side: str = "upper",
+    ) -> None:
+        if side not in ("upper", "lower"):
+            raise ValueError("side must be 'upper' or 'lower'")
         if not (0 < p0 < 1 and 0 < p1 < 1):
             raise ValueError("p0 and p1 must lie strictly in (0, 1)")
-        if p1 <= p0:
+        if side == "upper" and p1 <= p0:
             raise ValueError("p1 must exceed p0 for an upper CUSUM")
+        if side == "lower" and p1 >= p0:
+            raise ValueError("p1 must be below p0 for a lower CUSUM")
+        self.side = side
         self.p0, self.p1, self.h = p0, p1, h
         self.reset_on_signal = reset_on_signal
         # np.log rather than math.log so the weights match the batch version to
@@ -303,9 +331,22 @@ class AlarmBook:
 # Design and data
 
 
+#: ``lower_source`` when ``results.json`` carries no lower CUSUM design.
+LOWER_FALLBACK = "fallback: p1 = p0/2, h of the upper CUSUM"
+
+
 @dataclass(frozen=True)
 class MonitorDesign:
-    """Fixed Phase I design for every monitor in a session."""
+    """Fixed Phase I design for every monitor in a session.
+
+    ``lower_p1`` and ``lower_h`` design the improvement CUSUM. The pipeline's
+    calibrated values are used whenever ``results.json`` has them (see
+    :func:`lower_cusum_design`). Left as ``None`` they fall back to
+    p1 = p0/2, a halving that mirrors the upper chart's doubling, and the upper
+    chart's h. That fallback is close: the pipeline's own calibration of the
+    lower chart to the same ARL0 of about 500 runs gives h = 1.51 against the
+    upper chart's 1.82, so reusing h errs towards fewer false alarms.
+    """
 
     p0: float
     p1: float
@@ -319,12 +360,37 @@ class MonitorDesign:
     watch_median: float
     watch_mad: float
     gchart_alpha: float = GCHART_ALPHA
+    lower_p1: float | None = None
+    lower_h: float | None = None
+    lower_arl0: float | None = None
+    lower_source: str = LOWER_FALLBACK
+
+    def __post_init__(self) -> None:
+        if self.lower_p1 is None:
+            object.__setattr__(self, "lower_p1", self.p0 / 2.0)
+        if self.lower_h is None:
+            object.__setattr__(self, "lower_h", self.h)
+
+    @property
+    def lower(self) -> tuple[float, float]:
+        """(p1, h) of the lower CUSUM, after any fallback."""
+        assert self.lower_p1 is not None and self.lower_h is not None
+        return self.lower_p1, self.lower_h
 
     def as_dict(self) -> dict[str, Any]:
         d = asdict(self)
         center, lcl, ucl = geometric_limits(self.p0, self.gchart_alpha)
         d["gchart"] = {"center": center, "lcl": lcl, "ucl": ucl, "lower_limit_active": lcl > 0}
         d["baseline_weeks"] = list(self.baseline_weeks)
+        # The exact weights, so a client re-implementing the recursion (the
+        # static demo's JavaScript) adds the same doubles rather than
+        # recomputing logs that may differ in the last bit.
+        up = OnlineBernoulliCusum(self.p0, self.p1, self.h)
+        lo = OnlineBernoulliCusum(self.p0, *self.lower, side="lower")
+        d["weights"] = {
+            "upper": {"fail": up.w_fail, "pass": up.w_pass},
+            "lower": {"fail": lo.w_fail, "pass": lo.w_pass},
+        }
         return d
 
 
@@ -341,6 +407,42 @@ class ReplayRuns:
 
     def __len__(self) -> int:
         return len(self.run_id)
+
+
+#: Places ``results.json`` may hold the lower CUSUM design, most specific
+#: first. Each is a key path to a mapping with ``p1`` and ``h``.
+LOWER_DESIGN_KEYS: tuple[tuple[str, ...], ...] = (
+    ("cusum", "lower"),
+    ("cusum", "lower_cusum"),
+    ("cusum", "cusum_lower"),
+    ("cusum_lower",),
+    ("lower_cusum",),
+    ("shift_simulation", "design", "cusum_lower"),
+)
+
+
+def lower_cusum_design(
+    results: dict[str, Any],
+) -> tuple[float, float, float | None, str] | None:
+    """(p1, h, arl0, source) of the lower CUSUM in ``results``, or None.
+
+    The pipeline calibrates h by simulation to an in-control ARL of about 500
+    runs, as it does for the upper chart. The first of
+    :data:`LOWER_DESIGN_KEYS` present is used, and ``source`` names it.
+    """
+    for path in LOWER_DESIGN_KEYS:
+        node: Any = results
+        for key in path:
+            node = node.get(key) if isinstance(node, dict) else None
+        if isinstance(node, dict) and "p1" in node and "h" in node:
+            arl0 = node.get("arl0_runs", node.get("arl0"))
+            return (
+                float(node["p1"]),
+                float(node["h"]),
+                None if arl0 is None else float(arl0),
+                "results.json: " + ".".join(path),
+            )
+    return None
 
 
 def load_from_outputs(root: str | Path) -> tuple[MonitorDesign, ReplayRuns]:
@@ -364,6 +466,15 @@ def load_from_outputs(root: str | Path) -> tuple[MonitorDesign, ReplayRuns]:
 
     dim = pd.read_csv(powerbi / "dim_sensor.csv").set_index("sensor_id")
     lim = dim.loc[sensor]
+    lower = lower_cusum_design(results)
+    lower_kw: dict[str, Any] = {}
+    if lower is not None:
+        lower_kw = {
+            "lower_p1": lower[0],
+            "lower_h": lower[1],
+            "lower_arl0": lower[2],
+            "lower_source": lower[3],
+        }
     design = MonitorDesign(
         p0=float(cusum["p0"]),
         p1=float(cusum["p1"]),
@@ -376,6 +487,7 @@ def load_from_outputs(root: str | Path) -> tuple[MonitorDesign, ReplayRuns]:
         watch_ucl=float(lim["baseline_ucl"]),
         watch_median=float(lim["baseline_median"]),
         watch_mad=float(lim["baseline_mad"]),
+        **lower_kw,
     )
 
     runs = pd.read_csv(powerbi / "fact_run.csv").sort_values("run_index", kind="stable")
@@ -422,6 +534,7 @@ class ReplaySession:
     def _reset_monitors(self) -> None:
         d = self.design
         self.cusum = OnlineBernoulliCusum(d.p0, d.p1, d.h)
+        self.cusum_lower = OnlineBernoulliCusum(d.p0, *d.lower, side="lower")
         self.gchart = OnlineGChart(d.p0, d.gchart_alpha)
         self.watch = WatchlistTracker(
             d.watch_sensor,
@@ -450,6 +563,7 @@ class ReplaySession:
         fail = bool(r.is_fail[i])
         run, at = i + 1, str(r.timestamp[i])
         c = self.cusum.update(fail)
+        lo = self.cusum_lower.update(fail)
         g = self.gchart.update(fail)
         w = self.watch.update(float(r.watch_value[i]))
         self._fails += fail
@@ -463,11 +577,12 @@ class ReplaySession:
                 run,
                 at,
             )
-        if g.signal:
+        if lo.signal:
             self.alarms.signal(
-                "gchart",
+                "cusum_lower",
                 "improvement",
-                f"{g.gap} passing runs since the last failure > UCL {self.gchart.ucl:.0f}",
+                f"lower CUSUM {lo.value:.2f} > h = {self.cusum_lower.h:.2f}: "
+                "failure rate below baseline",
                 run,
                 at,
             )
@@ -481,6 +596,8 @@ class ReplaySession:
             "is_fail": fail,
             "cusum": c.value,
             "cusum_signal": c.signal,
+            "cusum_lower": lo.value,
+            "cusum_lower_signal": lo.signal,
             "gap": g.gap,
             "closed_gap": g.closed_gap,
             "gchart_signal": g.signal,
@@ -562,6 +679,26 @@ def phase_spans(runs: ReplayRuns) -> list[dict[str, Any]]:
         else:
             spans.append({"label": str(label), "start": i, "end": i})
     return spans
+
+
+def design_payload(design: MonitorDesign, runs: ReplayRuns, speed: float) -> dict[str, Any]:
+    """The design as the page reads it: ``/api/design`` and the static export."""
+    d = design.as_dict()
+    d["n_runs"] = len(runs)
+    d["phases"] = phase_spans(runs)
+    d["default_speed"] = speed
+    return d
+
+
+def json_safe(obj: Any) -> Any:
+    """Replace NaN/inf with None, recursively, so the output is strict JSON."""
+    if isinstance(obj, float):
+        return obj if math.isfinite(obj) else None
+    if isinstance(obj, dict):
+        return {k: json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, list | tuple):
+        return [json_safe(v) for v in obj]
+    return obj
 
 
 def session_from_outputs(root: str | Path) -> ReplaySession:

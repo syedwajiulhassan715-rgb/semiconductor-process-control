@@ -105,6 +105,7 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Live demo: https://syedwajiulhassan715-rgb.github.io/semiconductor-process-control/demo/
   - Getting started: getting-started.md
   - Findings:
       - Engineering report: report.md

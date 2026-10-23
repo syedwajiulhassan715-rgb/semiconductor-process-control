@@ -16,6 +16,7 @@ import pytest
 
 from secom.cli import main
 from secom.monitor import (
+    LOWER_FALLBACK,
     AlarmBook,
     AlarmError,
     MonitorDesign,
@@ -26,9 +27,11 @@ from secom.monitor import (
     WatchlistTracker,
     geometric_limits,
     load_from_outputs,
+    lower_cusum_design,
     phase_spans,
 )
 from secom.monitor_server import MonitorServer, serve
+from secom.power import cusum_first_signal
 from secom.spc import bernoulli_cusum, g_chart
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -101,6 +104,78 @@ class TestOnlineCusum:
     def test_rejects_invalid_design(self, p0: float, p1: float) -> None:
         with pytest.raises(ValueError):
             OnlineBernoulliCusum(p0, p1, 1.0)
+
+
+def _improving(n: int = 900, seed: int = 5) -> np.ndarray:
+    """Fail rate at p0, then a long stretch at a quarter of it."""
+    rng = np.random.default_rng(seed)
+    p = np.full(n, 0.03)
+    p[150:] = 0.0075
+    return rng.random(n) < p
+
+
+class TestLowerCusum:
+    def test_is_the_log_likelihood_ratio_recursion(self) -> None:
+        p0, p1, h = 0.03, 0.015, 1.5
+        c = OnlineBernoulliCusum(p0, p1, h, side="lower", reset_on_signal=False)
+        assert c.w_pass > 0 > c.w_fail
+        s = 0.0
+        for x in _improving():
+            s = max(0.0, s + (np.log(p1 / p0) if x else np.log((1 - p1) / (1 - p0))))
+            state = c.update(bool(x))
+            assert state.value == s
+            assert state.signal == (s > h)
+
+    @pytest.mark.parametrize("seed", [0, 1, 2, 3])
+    def test_first_signal_matches_power_simulation(self, seed: int) -> None:
+        x = _improving(seed=seed)
+        expected = cusum_first_signal(x[None, :], p0=0.03, p1=0.015, h=1.5)[0]
+        c = OnlineBernoulliCusum(0.03, 0.015, 1.5, side="lower")
+        signals = [i for i, v in enumerate(x, start=1) if c.update(bool(v)).signal]
+        assert signals and signals[0] == expected
+
+    def test_resets_after_signal_and_failures_pay_it_down(self) -> None:
+        c = OnlineBernoulliCusum(0.03, 0.015, 0.5, side="lower")
+        states = [c.update(False) for _ in range(40)]
+        first = next(i for i, s in enumerate(states) if s.signal)
+        assert states[first + 1].value == pytest.approx(c.w_pass)
+        before = c.value
+        assert c.update(True).value == max(0.0, before + c.w_fail) < before
+
+    @pytest.mark.parametrize(
+        ("p0", "p1", "side"), [(0.03, 0.06, "lower"), (0.03, 0.03, "lower"), (0.03, 0.01, "both")]
+    )
+    def test_rejects_invalid_design(self, p0: float, p1: float, side: str) -> None:
+        with pytest.raises(ValueError):
+            OnlineBernoulliCusum(p0, p1, 1.0, side=side)
+
+
+class TestLowerDesign:
+    def test_fallback_is_a_halving_with_the_upper_h(self) -> None:
+        d = _design(p0=0.04, h=1.7)
+        assert d.lower == (0.02, 1.7)
+        assert d.lower_source == LOWER_FALLBACK and d.lower_arl0 is None
+
+    def test_explicit_design_wins(self) -> None:
+        d = _design(lower_p1=0.01, lower_h=1.2)
+        assert d.lower == (0.01, 1.2)
+
+    def test_lookup_prefers_the_most_specific_key(self) -> None:
+        results = {
+            "cusum": {"lower": {"p1": 0.01, "h": 1.1, "arl0_runs": 480.0}},
+            "shift_simulation": {"design": {"cusum_lower": {"p1": 0.02, "h": 1.5}}},
+        }
+        assert lower_cusum_design(results) == (0.01, 1.1, 480.0, "results.json: cusum.lower")
+        del results["cusum"]
+        p1, h, arl0, source = lower_cusum_design(results) or (0, 0, 0, "")
+        assert (p1, h, arl0) == (0.02, 1.5, None)
+        assert source.endswith("shift_simulation.design.cusum_lower")
+        assert lower_cusum_design({"cusum": {"p0": 0.03}}) is None
+
+    def test_weights_are_exported_for_clients(self) -> None:
+        w = _design().as_dict()["weights"]
+        assert w["upper"]["fail"] == np.log(2.0)
+        assert w["lower"]["pass"] == np.log((1 - 0.015) / (1 - 0.03))
 
 
 # g-chart
@@ -241,6 +316,23 @@ class TestReplaySession:
         assert snap["since"] == 15 and [p["run"] for p in snap["history"]] == [16, 17, 18, 19, 20]
         assert s.snapshot(since=999)["history"] == []
 
+    def test_lower_cusum_raises_the_improvement_alarm(self) -> None:
+        s = ReplaySession(_design(), _runs(_improving()))
+        s.step(900)
+        sources = {a.source: a.kind for a in s.alarms.alarms}
+        assert sources.get("cusum_lower") == "improvement"
+        signals = [p["run"] for p in s.history if p["cusum_lower_signal"]]
+        first = next(a for a in s.alarms.alarms if a.source == "cusum_lower")
+        assert first.raised_run == signals[0]
+
+    def test_gchart_crossings_are_marked_but_not_alarmed(self) -> None:
+        x = np.zeros(400, dtype=bool)
+        x[0] = True
+        s = ReplaySession(_design(p0=0.2, p1=0.4, lower_h=50.0), _runs(x))
+        s.step(400)
+        assert sum(p["gchart_signal"] for p in s.history) == 1
+        assert not s.alarms.alarms
+
     def test_phase_spans_cover_the_stream(self) -> None:
         spans = phase_spans(_runs(np.zeros(10, bool)))
         assert spans == [
@@ -270,6 +362,14 @@ class TestAgainstCommittedOutputs:
             results["cusum"]["h"],
         )
         assert d.watch_sensor == results["sensors"]["hits_surviving_confound_check"][0]
+
+    def test_lower_design_comes_from_the_pipeline(self, real_session: ReplaySession) -> None:
+        results = json.loads((ROOT / "reports" / "results.json").read_text(encoding="utf-8"))
+        found = lower_cusum_design(results)
+        assert found is not None, "results.json should carry a calibrated lower CUSUM"
+        d = real_session.design
+        assert (d.lower_p1, d.lower_h, d.lower_arl0, d.lower_source) == found
+        assert d.lower_p1 is not None and d.lower_p1 < d.p0
 
     def test_cusum_matches_exported_fact_run(self, real_session: ReplaySession) -> None:
         fact = pd.read_csv(ROOT / "data" / "powerbi" / "fact_run.csv")
@@ -336,6 +436,13 @@ class TestHttpApi:
     def test_serves_the_page(self, server: MonitorServer) -> None:
         status, html = _get(server, "/")
         assert status == 200 and "<canvas" in html and "Chart.js/4.4.1" in html
+        # served mode: the static-data switch is left as a marker
+        assert "window.SECOM_MONITOR_DATA =" not in html
+
+    def test_serves_the_engine(self, server: MonitorServer) -> None:
+        with urllib.request.urlopen(server.url + "engine.js", timeout=5) as res:
+            assert "javascript" in res.headers["Content-Type"]
+            assert b"SecomEngine" in res.read()
 
     def test_design_endpoint(self, server: MonitorServer) -> None:
         status, d = _get(server, "/api/design")

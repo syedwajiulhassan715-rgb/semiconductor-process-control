@@ -5,6 +5,10 @@ lock. Playback is paced by the page, which calls ``/api/step`` on a timer, so
 the server holds no clock and every response is a deterministic function of
 the requests before it.
 
+The page is ``monitor_static/index.html`` with its engine ``engine.js``; the
+same page runs without this server as the static demo (see
+:mod:`secom.monitor_export`).
+
 Endpoints (all JSON)::
 
     GET  /api/design           fixed design: p0, p1, h, g-chart and watchlist limits
@@ -21,7 +25,6 @@ the request body to receive only new history points.
 from __future__ import annotations
 
 import json
-import math
 import threading
 from collections.abc import Callable
 from http import HTTPStatus
@@ -30,25 +33,26 @@ from importlib import resources
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
-from .monitor import AlarmError, ReplaySession, phase_spans
+from .monitor import AlarmError, ReplaySession, design_payload, json_safe
 
 #: Upper bound on runs per /api/step call, so one request can't stall the lock.
 MAX_STEP = 2000
 
 
-def _clean(obj: Any) -> Any:
-    """Replace NaN/inf with None so the output is strict JSON."""
-    if isinstance(obj, float):
-        return obj if math.isfinite(obj) else None
-    if isinstance(obj, dict):
-        return {k: _clean(v) for k, v in obj.items()}
-    if isinstance(obj, list | tuple):
-        return [_clean(v) for v in obj]
-    return obj
+#: Files of the page, served from the package: name -> content type.
+STATIC_FILES = {
+    "index.html": "text/html; charset=utf-8",
+    "engine.js": "text/javascript; charset=utf-8",
+}
 
 
-def _index_html() -> bytes:
-    return resources.files("secom").joinpath("monitor_static/index.html").read_bytes()
+def static_file(name: str) -> bytes:
+    """One of :data:`STATIC_FILES`, read from the installed package."""
+    return resources.files("secom").joinpath("monitor_static", name).read_bytes()
+
+
+def _static(name: str) -> Callable[[], tuple[bytes, str]]:
+    return lambda: (static_file(name), STATIC_FILES[name])
 
 
 class _ApiError(Exception):
@@ -110,7 +114,7 @@ class _Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _json(self, payload: Any, status: HTTPStatus = HTTPStatus.OK) -> None:
-        body = json.dumps(_clean(payload), allow_nan=False).encode("utf-8")
+        body = json.dumps(json_safe(payload), allow_nan=False).encode("utf-8")
         self._send(status, body, "application/json")
 
     def _body(self) -> dict[str, Any]:
@@ -138,8 +142,8 @@ class _Handler(BaseHTTPRequestHandler):
         except AlarmError as exc:
             self._json({"error": str(exc)}, HTTPStatus.CONFLICT)
             return
-        if isinstance(result, bytes):
-            self._send(HTTPStatus.OK, result, "text/html; charset=utf-8")
+        if isinstance(result, tuple):
+            self._send(HTTPStatus.OK, *result)
         else:
             self._json(result)
 
@@ -153,16 +157,13 @@ class _Handler(BaseHTTPRequestHandler):
                 return session.snapshot(since)
 
         def design() -> dict[str, Any]:
-            d = session.design.as_dict()
-            d["n_runs"] = len(session.runs)
-            d["phases"] = phase_spans(session.runs)
-            d["default_speed"] = self.server.speed
-            return d
+            return design_payload(session.design, session.runs, self.server.speed)
 
         self._dispatch(
             {
-                "/": _index_html,
-                "/index.html": _index_html,
+                "/": _static("index.html"),
+                "/index.html": _static("index.html"),
+                "/engine.js": _static("engine.js"),
                 "/api/design": design,
                 "/api/state": state,
             }
